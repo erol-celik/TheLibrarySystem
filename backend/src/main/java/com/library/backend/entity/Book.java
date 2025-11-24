@@ -1,15 +1,19 @@
 package com.library.backend.entity;
 
+import com.library.backend.entity.enums.BookType;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
-import java.time.LocalTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name="books")//veritabanında tablo oluşturur
 @Data//lombok getter setter kurar
-public class Book {
+@EqualsAndHashCode(callSuper = true)
+public class Book  extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,8 +42,17 @@ public class Book {
     @Column(nullable = false)
     private Integer availableStock;// ödünç verilebilir fiziki kopya sayısı
 
-    @Column(nullable = false)
-    private LocalTime created_at; // kütüphaneye eklenme zamanı
+    // REZERVASYON (Opsiyonel - Tek Kişilik)
+    @Column(name = "reserved_by_user_id")
+    private Long reservedByUserId;
+
+    @ManyToMany
+    @JoinTable(
+            name = "book_categories",//bu bir ara table. er diagramda var ama entity olarak yok.
+            joinColumns = @JoinColumn(name = "book_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<Category> categories = new HashSet<>(); // NullPointer yememek için başlatıyoruz
 
     // NOT: User ve Category ilişkileri buraya daha sonra eklenecek.
 }

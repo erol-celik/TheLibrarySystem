@@ -2,11 +2,13 @@ package com.library.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Entity
-@Table(name = "users") // Veritabanında 'users' adında tablo oluşturacak
-@Data // Lombok: Getter, Setter, toString metodlarını otomatik yazar
-public class User {
+@Table(name = "users")
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class User extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -16,10 +18,8 @@ public class User {
     private String email;
 
     @Column(nullable = false)
-    private String password; // İleride hashlenmiş olacak
+    private String password;
 
     @Column(nullable = false)
     private String name;
-
-    // Bakiyeyi (Wallet) daha sonra ekleyeceğiz, şimdilik temel çalışsın.
 }

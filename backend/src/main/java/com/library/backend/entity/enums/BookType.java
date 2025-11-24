@@ -1,4 +1,4 @@
-package com.library.backend.entity;
+package com.library.backend.entity.enums;
 
 // Kitabın fiziksel mi, dijital mi, yoksa hibrit mi olduğunu tanımlar.
 public enum BookType {
