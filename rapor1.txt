@@ -1,0 +1,75 @@
+Harika bir fikir. Bu "Change Log" (Değişiklik Kaydı) yaklaşımı, projenin evrildiğini ve yaşayan bir süreç olduğunu gösterir. Hem takım arkadaşlarının senkronize olmasını sağlar hem de hocana "Biz sadece kağıt üzerinde kalmadık, geliştirirken mimariyi iyileştirdik" mesajını verir.
+
+Senin için **"Project Revision & Architectural Changes"** (Proje Revizyonu ve Mimari Değişiklikler) başlığı altında, yaptığımız tüm kritik değişiklikleri özetleyen, arkadaşlarınla paylaşabileceğin formatta bir metin hazırladım. Bunu bir PDF veya Word dosyasına yapıştırıp paylaşabilirsin.
+
+İşte içerik:
+
+***
+
+# 📄 Project Revision Report: Architectural Changes & Decisions
+**Date:** November 24, 2025
+**Status:** Milestone 1 & 2 Alignment
+
+Bu belge, "Phase 1: Project Proposal" raporundan sonra, geliştirme aşamasında (Milestone 1) alınan teknik ve mimari değişiklik kararlarını özetlemektedir. Tüm ekip üyelerinin (Backend, Frontend, DB) bu yeni yapıya göre ilerlemesi gerekmektedir.
+
+---
+
+### 1. E/R Diagram & Database Schema Updates (En Kritik Değişiklik)
+
+**Eski Durum:**
+* `UserPurchasedBook` tablosu vardı ve sadece **Dijital E-Kitap** satışını takip ediyordu.
+* `Book` tablosunda sadece kiralama stoğu ve tek bir fiyat vardı.
+
+**Yeni Durum (Refactored Architecture):**
+Proje kapsamı **"Fiziksel Kitap Satışı"nı** da kapsayacak şekilde genişletildi. Kütüphane, elindeki fazla stokları (tıpkı e-kitap gibi) kullanıcılara satabilecek.
+
+* **`UserPurchasedBook` Tablosu İPTAL EDİLDİ (Deleted):**
+    * Yerine **`BookSale`** tablosu eklendi.
+    * Bu tablo `sale_type` (ENUM: `PHYSICAL_COPY`, `DIGITAL_COPY`) sütunu ile hem dijital hem fiziksel satışları tek merkezden yönetecek.
+* **`Book` Entity Güncellemesi:**
+    * Stok yönetimi ayrıldı:
+        * `totalRentalStock` / `availableRentalStock`: Sadece kiralama için.
+        * `totalSaleStock` (YENİ): Sadece fiziksel satış için ayrılan stok.
+    * Fiyatlandırma ayrıldı:
+        * `physicalPrice`: Fiziksel kopya satış fiyatı.
+        * `digitalPrice`: E-kitap indirme fiyatı.
+
+---
+
+### 2. Entity & Code Structure Decisions
+
+**Eski Durum:**
+Her Entity (User, Wallet, Book) kendi içinde `createdAt` tarihi oluşturuyor veya hiç tutmuyordu. Kod tekrarı vardı.
+
+**Yeni Durum (Clean Code & Audit):**
+* **`BaseEntity` Mimarisi:**
+    * `BaseEntity` adında soyut (abstract) bir sınıf oluşturuldu.
+    * `created_at` ve `updated_at` alanları buraya taşındı.
+    * `@PrePersist` ve `@PreUpdate` ile tarih atama işlemleri otomatikleştirildi.
+    * Tüm ana Entity'ler (`User`, `Book`, `Rental`, `BookSale`, `Rating`) artık `extends BaseEntity` yaparak bu özelliği miras alıyor.
+
+---
+
+### 3. Scope Management (Kapsam Yönetimi)
+
+Raporun "Prognosis" kısmındaki riskleri yönetmek için şu kararlar kesinleşti:
+
+* **Rezervasyon Sistemi:**
+    * **Karar:** Karmaşık "Sıra/Kuyruk" (Queue) sistemi **YAPILMAYACAK**.
+    * **Alternatif:** `Book` tablosuna sadece `reserved_by_user_id` alanı eklendi. Şimdilik sadece veritabanı altyapısı hazır tutulacak (Opsiyonel), iş mantığı (Backend kodu) öncelikli değil.
+* **İkinci El Pazar Yeri (P2P):**
+    * **Karar:** İPTAL EDİLDİ. Proje odağı dağıtmamak için kullanıcıdan kullanıcıya satış yok. Sadece Kütüphane -> Kullanıcı satışı var.
+
+---
+
+### 4. Action Plan for the Team (Takım İçin Aksiyonlar)
+
+1.  **Backend:** `Book.java` entity'si yukarıdaki yeni stok/fiyat yapısına göre güncellenecek. `UserPurchasedBook` silinip `BookSale` oluşturulacak.
+2.  **Database:** `docker compose up -d` yapıldığında tabloların bu yeni yapıya göre (Hibernate `ddl-auto=update` sayesinde) güncellendiği teyit edilecek.
+3.  **Frontend:** Kitap detay sayfasında artık iki buton olacak:
+    * "Kirala" (Stok varsa)
+    * "Satın Al" (Fiziksel veya Dijital seçenekli)
+
+***
+
+Bu metni arkadaşlarına iletebilirsin. Onaylarsan kodlamaya kaldığımız yerden (`Rating.java`) devam edelim.
