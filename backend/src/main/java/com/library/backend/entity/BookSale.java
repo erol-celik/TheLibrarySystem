@@ -14,10 +14,6 @@ import java.math.BigDecimal;
 @EqualsAndHashCode(callSuper = true)
 
 public class BookSale extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "sale_id")
-    private Long id;
 
     //fk-user satın alan
     @ManyToOne(fetch = FetchType.LAZY)

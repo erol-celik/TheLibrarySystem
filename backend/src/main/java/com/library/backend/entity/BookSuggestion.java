@@ -11,11 +11,6 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class BookSuggestion extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "suggestion_id")
-    private Long id;
-
     //fk - öneren user
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "suggester_user_id", nullable = false)

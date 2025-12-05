@@ -12,11 +12,6 @@ import java.math.BigDecimal;
 @EqualsAndHashCode(callSuper = true)
 public class WalletTransaction extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "transaction_id")
-    private Long id;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "wallet_id", nullable = false)
     private Wallet wallet;
