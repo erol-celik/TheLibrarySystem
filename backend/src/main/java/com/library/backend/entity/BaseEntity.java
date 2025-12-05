@@ -11,14 +11,21 @@ import java.time.LocalDateTime;
 @Data // Lombok: Getter, Setter, toString gibi metodları bizim yerimize yazar.
 public abstract class BaseEntity {
 
+    // --- EKLENEN KISIM (ID EKSİKTİ) ---
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+    // ----------------------------------
+
     // Kural: Bir kayıt oluşturulduğu anın tarihi tutulur ve bir daha ASLA değiştirilemez.
     // updatable = false: Bu sütuna SQL UPDATE atılmasını engeller.
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private LocalDateTime createdDate;
 
     // Kural: Bir kayıt üzerinde her değişiklik yapıldığında bu tarih güncellenmelidir.
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private LocalDateTime updateDate;
 
     // FONKSİYON 1: Yaratılış Anı Yakalayıcısı
     // @PrePersist: Bu notasyon, "Veritabanına INSERT (Kaydetme) işlemi gitmeden hemen önce bu metodu çalıştır" der.
@@ -26,9 +33,9 @@ public abstract class BaseEntity {
     @PrePersist
     protected void onCreate() {
         // Sunucunun o anki saatini alır.
-        createdAt = LocalDateTime.now();
+        createdDate = LocalDateTime.now();
         // İlk yaratıldığında güncelleme tarihi de o anki zamandır.
-        updatedAt = LocalDateTime.now();
+        updateDate = LocalDateTime.now();
     }
 
     // FONKSİYON 2: Güncelleme Anı Yakalayıcısı
@@ -38,6 +45,6 @@ public abstract class BaseEntity {
     protected void onUpdate() {
         // Sadece güncelleme tarihini o anki zamana çekeriz.
         // createdAt'e dokunmayız, o sabittir.
-        updatedAt = LocalDateTime.now();
+        updateDate = LocalDateTime.now();
     }
 }

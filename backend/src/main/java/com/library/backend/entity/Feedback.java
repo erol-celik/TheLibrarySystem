@@ -13,10 +13,6 @@ import lombok.EqualsAndHashCode;
 
 public class Feedback extends BaseEntity{
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="feedback_id")
-    private Long id;
 
     //fk - öneren user
     @ManyToOne(fetch = FetchType.LAZY)

@@ -13,11 +13,6 @@ import java.time.LocalDate;
 @EqualsAndHashCode(callSuper = true)
 public class Rental extends BaseEntity {
 
-    @Id//pk rent id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "rental_id")
-    private Long id;
-
     // fk-kiralayan kullanıcı
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

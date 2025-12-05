@@ -12,10 +12,6 @@ import java.math.BigDecimal;
 @EqualsAndHashCode(callSuper = true)
 public class Donation extends BaseEntity {
 
-    @Id//pk-id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "donation_id")
-    private Long id;
 
     //bağış yapan kullanıcı
     @ManyToOne(fetch = FetchType.LAZY)
