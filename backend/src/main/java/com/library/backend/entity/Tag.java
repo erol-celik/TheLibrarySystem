@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -21,6 +22,6 @@ public class Tag extends BaseEntity {
 
     // --- Many-to-Many İlişki ---
     // Bu taraf, Book sınıfında tanımlanan ilişkiye bağlıdır (mappedBy).
-    @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
+    @ManyToMany(mappedBy = "tags", fetch = FetchType.EAGER)
     private Set<Book> books = new HashSet<>();
 }
