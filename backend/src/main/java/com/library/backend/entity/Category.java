@@ -1,5 +1,6 @@
 package com.library.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -17,10 +18,12 @@ public class Category extends BaseEntity {
 
 
     @Column(nullable = false,unique = true)
-    private String name;//kategori ismi
+
+    public String name;//kategori ismi
 
     //bu ilişkinin yönetimi book varlığında
     @OneToMany(mappedBy = "category", fetch = FetchType.LAZY)
+    @JsonIgnore
     private Set<Book> books = new HashSet<>();
 
 

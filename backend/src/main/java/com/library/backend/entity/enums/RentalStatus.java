@@ -5,5 +5,6 @@ public enum RentalStatus {
     APPROVED,   // kabul edildi,ödünç verildi
     RETURNED,   // iade edildi
     LATE,       // süresi gecikti
-    REJECTED    // onay verilmedi
+    REJECTED,    // onay verilmedi
+    AVAILABLE
 }

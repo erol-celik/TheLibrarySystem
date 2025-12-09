@@ -1,6 +1,7 @@
 package com.library.backend.entity;
 
 import com.library.backend.entity.enums.BookType;
+import com.library.backend.entity.enums.RentalStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -12,7 +13,7 @@ import java.util.Set;
 @Entity
 @Table(name="books")//veritabanında tablo oluşturur
 @Data//lombok getter setter kurar
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = true, exclude = {"category", "tags"})
 public class Book  extends BaseEntity{
 
 
@@ -21,6 +22,10 @@ public class Book  extends BaseEntity{
 
     @Column(nullable = false)
     private String author;//yazar
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RentalStatus rentalStatus;
 
     @Column(nullable = false, unique = true)
     private String isbn; // Barkod/ISBN no
@@ -79,6 +84,7 @@ public class Book  extends BaseEntity{
             joinColumns = @JoinColumn(name = "book_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
+
     private Set<Tag> tags = new HashSet<>();
 
     // Tag Ekleme/Çıkarma (Kör randevu mantığı için gerekli)

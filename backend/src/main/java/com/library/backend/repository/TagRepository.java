@@ -11,4 +11,6 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
 
     // Book entity'sinde Tag'lerin kontrolünü basitleştirmek için var mı yok mu kontrolü
     boolean existsByName(String name);
+
+    Optional<Tag> findByNameIgnoreCase(String name);
 }
