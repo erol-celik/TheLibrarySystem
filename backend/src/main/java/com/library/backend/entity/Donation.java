@@ -31,7 +31,4 @@ public class Donation extends BaseEntity {
     @Column(nullable = false)
     private DonationStatus status;
 
-    // NE KADAR KREDİ VERİLECEK? (Admin belirler, başta null olabilir)
-    @Column(name = "credit_amount", precision = 10, scale = 2)
-    private BigDecimal creditAmount;
 }
