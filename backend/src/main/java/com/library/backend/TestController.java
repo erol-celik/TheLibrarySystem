@@ -14,4 +14,16 @@ public class TestController {
     public String sayHello() {
         return "Hello World! The Library System Backend is running.";
     }
+
+    @GetMapping("/admin-only")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    public String adminOnly() {
+        return "Burayı görüyorsan PATRON sensin!";
+    }
+
+    @GetMapping("/user-only")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('USER')")
+    public String userOnly() {
+        return "Hoşgeldin standart kullanıcı.";
+    }
 }
