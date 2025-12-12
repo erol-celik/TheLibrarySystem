@@ -6,6 +6,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +15,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class JwtService {
@@ -35,10 +37,19 @@ public class JwtService {
     }
 
     // 3. Yeni Token Üretme (Sadece UserDetails ile)
-    public String generateToken(UserDetails userDetails) {
+   /* public String generateToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails);
-    }
+    }*/
+    public String generateToken(UserDetails userDetails) {
+        Map<String, Object> claims = new HashMap<>();
 
+        // KRİTİK: Yetkileri String listesi olarak claims'e ekle
+        claims.put("roles", userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList()));
+
+        return generateToken(claims, userDetails); // claims map'ini gönderiyoruz
+    }
     // 4. Yeni Token Üretme (Ekstra Verilerle - Örn: Roller)
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         return Jwts.builder()
@@ -49,6 +60,7 @@ public class JwtService {
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256) // İmzala
                 .compact();
     }
+
 
     // 5. Token Geçerli mi? (Süresi dolmuş mu, kullanıcı adı tutuyor mu?)
     public boolean isTokenValid(String token, UserDetails userDetails) {
