@@ -34,6 +34,8 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     // 2. Stoğu kritik seviyenin (Örn: 3) altına düşen fiziksel kitaplar
     List<Book> findByAvailableStockLessThanAndBookType(int stockLimit, com.library.backend.entity.enums.BookType bookType);
 
+    Book findByIsbn(String isbn);
+
 
     // Not: "Popüler" mantığı için şimdilik tüm kitapları çekip işlem yapacağız
     // veya ilerde Rental tablosuna bağlayacağız.

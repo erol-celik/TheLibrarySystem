@@ -5,21 +5,23 @@ import com.library.backend.entity.enums.RentalStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.With;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 @Entity
 @Table(name="books")//veritabanında tablo oluşturur
 @Data//lombok getter setter kurar
 @EqualsAndHashCode(callSuper = true, exclude = {"category", "tags"})
+
 public class Book  extends BaseEntity{
 
 
     @Column(nullable = false)
     private String title;//at
-
     @Column(nullable = false)
     private String author;//yazar
 
@@ -67,6 +69,9 @@ public class Book  extends BaseEntity{
     // REZERVASYON (Opsiyonel - Tek Kişilik)
     @Column(name = "reserved_by_user_id")
     private Long reservedByUserId;
+
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = true;
 
     // --- DÜZELTME BURADA YAPILDI ---
     // Hatanın sebebi burasıydı. Category entity'si "category" adında tekil bir alan bekliyordu.
