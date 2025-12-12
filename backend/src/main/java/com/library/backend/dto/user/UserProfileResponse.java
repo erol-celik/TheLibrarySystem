@@ -18,7 +18,7 @@ public class UserProfileResponse {
     private Set<RoleType> roles;
     private boolean isBanned;
     private BigDecimal walletBalance;
-    String profilePicUrl;
+    String avatarUrl;
     String bio;
     Set<Badge> badges;
 
