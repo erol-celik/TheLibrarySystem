@@ -24,6 +24,15 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     List<Book> findByBookType(BookType status);
 
     List<Book> findByTitleContainingIgnoreCase(String title);
+    // Sınıfın içine ekle:
+
+    // 1. Kategorilere göre kitap dağılımı (Örn: Bilim Kurgu - 150 adet)
+    // Bu sorgu veritabanında "GROUP BY" işlemi yapar, Java'yı yormaz.
+    @org.springframework.data.jpa.repository.Query("SELECT b.category.name, COUNT(b) FROM Book b GROUP BY b.category.name")
+    List<Object[]> countBooksByCategory();
+
+    // 2. Stoğu kritik seviyenin (Örn: 3) altına düşen fiziksel kitaplar
+    List<Book> findByAvailableStockLessThanAndBookType(int stockLimit, com.library.backend.entity.enums.BookType bookType);
 
 
     // Not: "Popüler" mantığı için şimdilik tüm kitapları çekip işlem yapacağız

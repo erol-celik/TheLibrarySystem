@@ -1,5 +1,6 @@
 package com.library.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -23,5 +24,6 @@ public class Tag extends BaseEntity {
     // --- Many-to-Many İlişki ---
     // Bu taraf, Book sınıfında tanımlanan ilişkiye bağlıdır (mappedBy).
     @ManyToMany(mappedBy = "tags", fetch = FetchType.EAGER)
+    @JsonIgnore
     private Set<Book> books = new HashSet<>();
 }

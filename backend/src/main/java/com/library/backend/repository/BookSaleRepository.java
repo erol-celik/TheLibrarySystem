@@ -7,4 +7,7 @@ import java.util.List;
 public interface BookSaleRepository extends JpaRepository<BookSale, Long> {
     // Bir kullanıcının satın aldığı kitapları listelemek için
     List<BookSale> findByUserId(Long userId);
+
+    // Kullanıcı bu kitabı satın almış mı?
+    boolean existsByUserIdAndBookId(Long userId, Long bookId);
 }
