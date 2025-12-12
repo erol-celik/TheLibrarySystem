@@ -13,6 +13,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.authority.mapping.NullAuthoritiesMapper;
 import org.springframework.security.core.userdetails.UserDetailsService; // <<< KRİTİK IMPORT BU
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,6 +34,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+
+                .securityContext((securityContext) -> securityContext
+                        .requireExplicitSave(false) // Varsayılan ayar, ancak context'in doğru kurulduğundan emin olmak için
+                )
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         // 1. HERKESE AÇIK YOLLAR
@@ -42,7 +47,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/test/**").permitAll()
 
                         // 2. ÖZEL YOLLAR (Ali Kurnazlık Yapar Senaryosu)
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/librarian/**").hasAnyRole("LIBRARIAN", "ADMIN")
 
                         // 3. DİĞER HER ŞEY İÇİN GİRİŞ ŞART

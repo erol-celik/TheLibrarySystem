@@ -1,5 +1,6 @@
 package com.library.backend.controller;
 
+import com.library.backend.dto.book.AddBookRequest;
 import com.library.backend.dto.book.BlindDateBookResponse;
 import com.library.backend.dto.book.BookResponse;
 import com.library.backend.entity.Book;
@@ -9,19 +10,20 @@ import com.library.backend.service.BookService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/books")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class BookController {
 
     private final BookService bookService;
 
     // 1. Yeni Gelen Kitapları Getir
-    @GetMapping("/new")
+    @GetMapping("/books/new")
     public ResponseEntity<List<BookResponse>> getNewArrivals() {
         return ResponseEntity.ok(bookService.getNewArrivals());
     }
@@ -33,12 +35,12 @@ public class BookController {
     }*/
 
     // 3. Tüm Kitapları Getir
-    @GetMapping
+    @GetMapping("/books")
     public ResponseEntity<List<BookResponse>> getAllBooks() {
         return ResponseEntity.ok(bookService.getAllBooks());
     }
 
-    @GetMapping("/blind-date-by-tag/{tagName}")
+    @GetMapping("/books/blind-date-by-tag/{tagName}")
     public ResponseEntity<BlindDateBookResponse> getBlindDateBook(@PathVariable String tagName) {
         try {
             BlindDateBookResponse dto = bookService.getBlindDateBookByTag(tagName);
@@ -49,7 +51,7 @@ public class BookController {
         }
     }
 
-    @GetMapping("/search")
+    @GetMapping("/books/search")
     public ResponseEntity<List<BookResponse>> searchBooks(@RequestParam("q") String keyword) {
 
         List<BookResponse> results = bookService.searchBooks(keyword);
@@ -63,7 +65,7 @@ public class BookController {
         return ResponseEntity.ok(results);
     }
 
-    @GetMapping("/search-by-author")
+    @GetMapping("/books/search-by-author")
     public ResponseEntity<List<BookResponse>> searchBooksByAuthor(@RequestParam("q") String keyword) {
 
         List<BookResponse> results = bookService.searchBooksByAuthor(keyword);
@@ -77,7 +79,7 @@ public class BookController {
         return ResponseEntity.ok(results);
     }
 
-    @GetMapping("/search-by-status")
+    @GetMapping("/books/search-by-status")
     public ResponseEntity<List<BookResponse>> searchBooksByStatus(@RequestParam("q") RentalStatus keyword) {
 
         List<BookResponse> results = bookService.searchBooksByStatus(keyword);
@@ -91,7 +93,7 @@ public class BookController {
         return ResponseEntity.ok(results);
     }
 
-    @GetMapping("/search-by-type")
+    @GetMapping("/books/search-by-type")
     public ResponseEntity<List<BookResponse>> searchBooksByStatus(@RequestParam("q") BookType keyword) {
 
         List<BookResponse> results = bookService.searchBooksByBookType(keyword);
@@ -103,5 +105,23 @@ public class BookController {
 
         // Sonuç varsa 200 OK ile Entity listesini döndür
         return ResponseEntity.ok(results);
+    }
+
+    @PostMapping("/admin/add-book")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<BookResponse> addBook(@RequestBody AddBookRequest book){
+
+        BookResponse response = bookService.addBook(book);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/admin/delete-book/{isbn}")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<BookResponse> removeBook(@PathVariable String isbn){
+
+        BookResponse response = bookService.deleteBookByIsbn(isbn);
+
+        return ResponseEntity.ok(response);
     }
 }

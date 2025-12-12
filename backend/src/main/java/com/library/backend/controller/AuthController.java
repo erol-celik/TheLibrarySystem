@@ -27,6 +27,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
         // Artık Token dönüyor
+        System.out.println("---- LOGIN CONTROLLER'A GİRİŞ YAPILDI! ----"); // <<< TEŞHİS KODU
         return ResponseEntity.ok(authService.login(request));
     }
 }

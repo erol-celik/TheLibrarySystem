@@ -10,6 +10,7 @@ import com.library.backend.repository.UserRepository;
 import com.library.backend.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -77,6 +78,10 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı."));
 
+        if(user.isBanned()){
+            System.out.println("Hesabınız yönetici tarafından askıya alınmıştır.");
+            throw new BadCredentialsException("Hesabınız yönetici tarafından askıya alınmıştır.");
+        }
         // 3. UserDetails objesi oluştur (Token için lazım)
         var userDetails = new org.springframework.security.core.userdetails.User(
                 user.getEmail(),

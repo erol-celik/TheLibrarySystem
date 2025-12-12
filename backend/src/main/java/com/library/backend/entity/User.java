@@ -2,6 +2,7 @@ package com.library.backend.entity;
 
 import com.library.backend.entity.enums.RoleType;
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -23,8 +24,26 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
+    @Column
+    private String bio;
+
+    @Column
+    private String profilePicUrl;
+
     @Column(name = "is_banned", nullable = false)
     private boolean isBanned = false;
+
+    // User.java Entity'nizde Wallet ilişkisi (Wallet'ı da kaydetmek için)
+   /* @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Wallet wallet;*/
+
+    @ManyToMany(fetch = FetchType.EAGER) // Genellikle rozetler profille birlikte yüklensin istenir (EAGER)
+    @JoinTable(
+            name = "user_badges", // Veritabanındaki ara tablo adı
+            joinColumns = @JoinColumn(name = "user_id"), // User tablosundan buraya gelen kolon
+            inverseJoinColumns = @JoinColumn(name = "badge_id") // Badge tablosundan gelen kolon
+    )
+    private Set<Badge> badges = new HashSet<>();
 
     // 5. ROLLER (RBAC Kilit Noktası)
     // Ayrı bir 'Role' tablosu yerine, User'a bağlı 'user_roles' adında
@@ -41,6 +60,7 @@ public class User extends BaseEntity {
                 .map(role -> new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + role.name()))
                 .collect(java.util.stream.Collectors.toList());
     }
+
 
 
 }
