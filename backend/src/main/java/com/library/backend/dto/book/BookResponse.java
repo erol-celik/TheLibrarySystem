@@ -20,6 +20,7 @@ public class BookResponse {
     private BookType bookType;
     private RentalStatus status;
     private BigDecimal price;
+    private Integer availableStock;
     private String ebookFilePath;
     private String imageUrl; // Kapak resmi için
     private String categoryName; // Category objesi değil, sadece ismi

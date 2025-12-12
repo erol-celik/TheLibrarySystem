@@ -21,41 +21,27 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final AuthenticationManager authenticationManager; // Spring Security'nin Polisi
+    private final AuthenticationManager authenticationManager;
 
     public AuthResponse register(RegisterRequest request) {
-        // 1. Email Kontrolü
+        // 1. Email kontrolü
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Bu e-posta adresi zaten kullanılıyor.");
+            throw new RuntimeException("Bu email zaten kayıtlı.");
         }
 
-        // 2. Kullanıcıyı Oluştur
+        // 2. Kullanıcıyı oluştur
         User user = new User();
         user.setName(request.getName());
         user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword())); // Şifreyi Hashle
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.getRoles().add(RoleType.USER); // Varsayılan rol
 
-        // Varsayılan rol USER
-        user.getRoles().add(RoleType.USER);
-
-        // 3. Kaydet
+        // 3. Veritabanına kaydet
         User savedUser = userRepository.save(user);
 
-        // 4. Token Üret (Kayıt olunca otomatik giriş yapmış sayılsın)
-        // UserDetailService entegrasyonu sayesinde User sınıfı UserDetails'i implemente etmeli
-        // VEYA burada UserDetailsServiceImpl'deki mantığı kullanmalıyız.
-        // Hızlı çözüm için UserDetailsServiceImpl'i çağırabiliriz ama
-        // User sınıfımız UserDetails implemente ederse daha temiz olur.
-        // Şimdilik token üretimi için customUserDetails oluşturalım:
-        var userDetails = new org.springframework.security.core.userdetails.User(
-                savedUser.getEmail(),
-                savedUser.getPassword(),
-                savedUser.getAuthorities() // User entity içindeki getAuthorities metodu önemli
-        );
+        // 4. Direkt token üret (Login çağırmaya gerek yok)
+        String jwtToken = jwtService.generateToken(savedUser);
 
-        String jwtToken = jwtService.generateToken(userDetails);
-
-        // 5. Cevabı Dön
         return AuthResponse.builder()
                 .token(jwtToken)
                 .user(mapToDTO(savedUser))
@@ -63,9 +49,7 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        // 1. KİMLİK DOĞRULAMA (AuthenticationManager devreye girer)
-        // Bu metod gidip UserDetailsService'i çalıştırır, şifreleri (hash) kıyaslar.
-        // Hata varsa "BadCredentialsException" fırlatır, biz uğraşmayız.
+        // 1. Kimlik Doğrulama (Spring Security)
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
@@ -73,21 +57,13 @@ public class AuthService {
                 )
         );
 
-        // 2. Kullanıcıyı Bul (Zaten doğrulandı, veritabanından çekelim)
+        // 2. Kullanıcıyı getir
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı."));
 
-        // 3. UserDetails objesi oluştur (Token için lazım)
-        var userDetails = new org.springframework.security.core.userdetails.User(
-                user.getEmail(),
-                user.getPassword(),
-                user.getAuthorities()
-        );
+        // 3. Token üret
+        String jwtToken = jwtService.generateToken(user);
 
-        // 4. Token Üret
-        String jwtToken = jwtService.generateToken(userDetails);
-
-        // 5. Cevabı Dön
         return AuthResponse.builder()
                 .token(jwtToken)
                 .user(mapToDTO(user))

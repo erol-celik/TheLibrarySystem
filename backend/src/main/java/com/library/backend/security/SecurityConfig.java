@@ -33,6 +33,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .securityContext((securityContext) -> securityContext
+                        .requireExplicitSave(false) // Varsayılan ayar, ancak context'in doğru kurulduğundan emin olmak için
+                )
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         // 1. HERKESE AÇIK YOLLAR
@@ -42,7 +45,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/test/**").permitAll()
 
                         // 2. ÖZEL YOLLAR (Ali Kurnazlık Yapar Senaryosu)
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasAllAuthorities("ROLE_ADMIN")
                         .requestMatchers("/api/librarian/**").hasAnyRole("LIBRARIAN", "ADMIN")
 
                         // 3. DİĞER HER ŞEY İÇİN GİRİŞ ŞART

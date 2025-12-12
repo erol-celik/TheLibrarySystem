@@ -12,4 +12,7 @@ public interface DonationRepository extends JpaRepository<Donation, Long> {
 
     // Kullanıcı için: Benim yaptığım bağışları getir
     List<Donation> findByUserId(Long userId);
+
+    // Kullanıcı bu isimde bir kitabı bağışlamış mı?
+    boolean existsByUserIdAndBookTitleIgnoreCase(Long userId, String bookTitle);
 }
