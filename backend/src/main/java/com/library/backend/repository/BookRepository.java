@@ -25,6 +25,8 @@ public interface BookRepository extends JpaRepository<Book, Long> {
 
     List<Book> findByTitleContainingIgnoreCase(String title);
 
+    Book findByIsbn(String isbn);
+
 
     // Not: "Popüler" mantığı için şimdilik tüm kitapları çekip işlem yapacağız
     // veya ilerde Rental tablosuna bağlayacağız.

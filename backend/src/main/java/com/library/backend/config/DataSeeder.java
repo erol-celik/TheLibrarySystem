@@ -3,15 +3,18 @@ package com.library.backend.config;
 import com.library.backend.entity.*;
         import com.library.backend.entity.enums.BookType;
 import com.library.backend.entity.enums.RentalStatus;
+import com.library.backend.entity.enums.RoleType;
 import com.library.backend.repository.*;
         import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class DataSeeder implements CommandLineRunner {
     private final WalletRepository walletRepository;
     private final TagRepository tagRepository;
     private final SeedingHelper seedingHelper; // <<< YENİ ENJEKSİYON
+    private final PasswordEncoder passwordEncoder;
 
     private DataSeeder self;
 
@@ -200,25 +204,76 @@ public class DataSeeder implements CommandLineRunner {
 
     @Transactional
     private void seedUsers() {
-        if (userRepository.findByEmail("test@mail.com").isEmpty()) {
+        if (userRepository.count() == 0) {
+
+            // ------------------------------------------------
+            // 1. ADMIN KULLANICISI EKLEME (MANUEL YÖNTEM)
+            // ------------------------------------------------
+            User adminUser = new User(); // Yeni User objesi oluşturuldu
+            adminUser.setName("Admin Yönetici");
+            adminUser.setEmail("admin@mail.com");
+            adminUser.setPassword(passwordEncoder.encode("admin1234")); // Şifre hashleniyor
+            adminUser.setRoles(Set.of(RoleType.ADMIN));
+            adminUser.setBanned(false);
+
+            userRepository.save(adminUser);
+
+            // ADMIN Cüzdanını oluştur
+            Wallet adminWallet = new Wallet();
+            adminWallet.setUser(adminUser);
+            adminWallet.setBalance(new BigDecimal("1000.00"));
+            walletRepository.save(adminWallet);
+            //adminUser.setWallet(adminWallet);
+
+            System.out.println("--- YAPAY KULLANICI EKLENDİ: admin@mail.com (admin1234) ---   "+ adminUser.getId());
+
+            // ------------------------------------------------
+            // 2. NORMAL TEST KULLANICISI (MANUEL YÖNTEM)
+            // ------------------------------------------------
             User testUser = new User();
             testUser.setName("Test Kullanıcısı");
             testUser.setEmail("test@mail.com");
-            testUser.setPassword("test1234");
-            User savedUser = userRepository.save(testUser);
-            createInitialWallet(savedUser);
-            System.out.println("--- YAPAY KULLANICI EKLENDİ: test@mail.com (test1234) ---");
+            testUser.setPassword(passwordEncoder.encode("test1234"));
+            testUser.setRoles(Set.of(RoleType.USER));
+            testUser.setBanned(false);
+
+            userRepository.save(testUser);
+
+            // NORMAL Cüzdanı oluştur
+            Wallet testWallet = new Wallet();
+            testWallet.setUser(testUser);
+            testWallet.setBalance(new BigDecimal("100.00"));
+            walletRepository.save(testWallet);
+
+          //  testUser.setWallet(testWallet);
+
+            System.out.println("--- YAPAY KULLANICI EKLENDİ: test@mail.com (test1234) ---   " + testUser.getId());
+
+            // ------------------------------------------------
+// 3. LIBRARIAN KULLANICISI EKLEME (MANUEL YÖNTEM)
+// ------------------------------------------------
+            User librarianUser = new User();
+            librarianUser.setName("Kütüphane Görevlisi");
+            librarianUser.setEmail("librarian@mail.com");
+            librarianUser.setPassword(passwordEncoder.encode("librarian1234"));
+// Sadece LIBRARIAN ve varsayılan olarak USER rolü
+            librarianUser.setRoles(Set.of(RoleType.LIBRARIAN));
+            librarianUser.setBanned(false);
+
+            userRepository.save(librarianUser);
+
+// LIBRARIAN Cüzdanını oluştur
+            Wallet librarianWallet = new Wallet();
+            librarianWallet.setUser(librarianUser);
+            librarianWallet.setBalance(new BigDecimal("500.00"));
+            walletRepository.save(librarianWallet);
+          //  librarianUser.setWallet(librarianWallet);
+            System.out.println("--- YAPAY KULLANICI EKLENDİ: librarian@mail.com (librarian1234) ---   "+ librarianUser.getId());
         }
+
+        System.out.println("--- TÜM BAŞLANGIÇ VERİLERİ İŞLENDİ ---");
+
     }
 
-    private void createInitialWallet(User user) {
-        // MANTIK HATASI DÜZELTİLDİ: Yalnızca cüzdan yoksa oluştur.
-        if (walletRepository.findByUser(user).isEmpty()) {
-            Wallet wallet = new Wallet();
-            wallet.setUser(user);
-            wallet.setBalance(BigDecimal.valueOf(100.00));
-            walletRepository.save(wallet);
-        }
-    }
-    // seedCategories metodu artık yok, helper'a taşındı.
+
 }
