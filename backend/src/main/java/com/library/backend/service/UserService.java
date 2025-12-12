@@ -50,7 +50,7 @@ public class UserService {
         response.setEmail(user.getEmail());
         response.setRoles(user.getRoles());
         response.setWalletBalance(balance);
-        response.setProfilePicUrl(user.getProfilePicUrl());
+        response.setAvatarUrl(user.getAvatarUrl());
         response.setBio(user.getBio());
         response.setBadges(user.getBadges());
         return response;
@@ -73,7 +73,7 @@ public class UserService {
         }
 
         // Avatar ve Bio alanlarını güncelleme (null ile göndermek temizlemek anlamına gelir)
-        user.setProfilePicUrl(request.getProfilePictureUrl());
+        user.setAvatarUrl(request.getProfilePictureUrl());
         user.setBio(request.getBio());
 
         userRepository.save(user);
