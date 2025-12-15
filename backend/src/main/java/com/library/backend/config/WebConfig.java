@@ -6,18 +6,18 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-public class CorsConfig {
+public class WebConfig {
 
     @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**") // Tüm endpoint'lere izin ver
-                        .allowedOrigins("http://localhost:5173") // Sadece Frontend'in adresine izin ver
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // Tüm metodlara izin ver
-                        .allowedHeaders("*")
-                        .allowCredentials(true);
+                registry.addMapping("/**") // Tüm endpointlere izin ver
+                        .allowedOrigins("http://localhost:3000") // SADECE Frontend'e izin ver
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // İzin verilen metodlar
+                        .allowedHeaders("*") // Tüm başlıklara izin ver
+                        .allowCredentials(true); // Cookie/Auth bilgilerine izin ver
             }
         };
     }

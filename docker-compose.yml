@@ -1,0 +1,56 @@
+services:
+  # 1. VERİTABANI SERVİSİ
+  mysqldb:
+    image: mysql:8.0
+    container_name: library_mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: library_db_v2
+    ports:
+      - "3306:3306"
+    volumes:
+      # Veriler proje klasöründeki 'mysql-data' klasörüne kaydedilir
+      - ./mysql-data:/var/lib/mysql
+      # Ana dizindeki data.sql dosyasını alır ve veritabanı ilk açıldığında yükler
+      - ./data.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - library-network
+    command: --default-authentication-plugin=mysql_native_password
+
+  # 2. BACKEND SERVİSİ
+  backend:
+    build: ./backend
+    container_name: library_backend
+    ports:
+      - "8080:8080"
+    environment:
+      # Dikkat: 'localhost' yerine servis adı olan 'mysqldb' kullanılır
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysqldb:3306/library_db_v2?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    networks:
+      - library-network
+    depends_on:
+      - mysqldb
+
+  # 3. FRONTEND SERVİSİ
+  frontend:
+    build: ./frontend
+    container_name: library_frontend
+    ports:
+      - "3000:3000"
+    # Windows'ta dosya değişimini algılaması için gerekli ayar
+    environment:
+      - WATCHPACK_POLLING=true 
+    stdin_open: true
+    tty: true
+    networks:
+      - library-network
+    depends_on:
+      - backend
+
+networks:
+  library-network:
+    driver: bridge
