@@ -3,13 +3,17 @@ package com.library.backend.repository;
 import com.library.backend.entity.Book;
 import com.library.backend.entity.enums.BookType;
 import com.library.backend.entity.enums.RentalStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface BookRepository extends JpaRepository<Book, Long> {
+public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificationExecutor<Book> {
 
     // 1. Editörün seçtiklerini getir
     List<Book> findByIsEditorsPickTrue();
@@ -36,6 +40,25 @@ public interface BookRepository extends JpaRepository<Book, Long> {
 
     Book findByIsbn(String isbn);
 
+    @Query("SELECT b FROM Book b WHERE " +
+            // 1. ARAMA ÇUBUĞU (Title, Author veya ISBN'de ara)
+            "(:keyword IS NULL OR (" +
+            "   LOWER(b.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "   LOWER(b.author) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "   LOWER(b.isbn) LIKE LOWER(CONCAT('%', :keyword, '%'))" +
+            ")) " +
+            "AND " +
+            // 2. KATEGORİ FİLTRESİ (Seçildiyse eşleştir, yoksa geç)
+            "(:category IS NULL OR b.category.name = :category) " +
+            "AND " +
+            // 3. STOK DURUMU ('Available Only' seçildiyse stok > 0 olsun)
+            "(:available IS NULL OR :available = false OR b.availableStock > 0)")
+    Page<Book> searchBooks(
+            @Param("keyword") String keyword,
+            @Param("category") String category,
+            @Param("available") Boolean available,
+            Pageable pageable
+    );
 
     // Not: "Popüler" mantığı için şimdilik tüm kitapları çekip işlem yapacağız
     // veya ilerde Rental tablosuna bağlayacağız.

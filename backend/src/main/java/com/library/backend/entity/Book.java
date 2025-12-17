@@ -63,6 +63,12 @@ public class Book  extends BaseEntity{
     @Column(nullable = false)
     private Integer availableStock;// ödünç verilebilir fiziki kopya sayısı
 
+    @Column(name = "rating")
+    private Double rating = 0.0; // Örn: 4.5
+
+    @Column(name = "review_count")
+    private Integer reviewCount = 0;
+
     @Column(name = "is_editors_pick")
     private boolean isEditorsPick = false; // Editörün seçimi mi?
 

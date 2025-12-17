@@ -70,14 +70,14 @@ public class ContributionController {
         return ResponseEntity.ok("Suggestion sent.");
     }
 
-    @GetMapping("/librarian/suggestions")
-    @PreAuthorize("hasAnyRole('ROLE_LIBRARIAN', 'ROLE_ADMIN')")
+    @GetMapping("/admin/feedbacks")
+    @PreAuthorize("hasAnyRole( 'ROLE_ADMIN')")
     public ResponseEntity<List<BookSuggestion>> getPendingSuggestions() {
         return ResponseEntity.ok(feedbackService.getPendingSuggestions());
     }
 
-    @PutMapping("/librarian/suggestions/{id}/status")
-    @PreAuthorize("hasAnyRole('ROLE_LIBRARIAN', 'ROLE_ADMIN')")
+    @PutMapping("/admin/feedbacks/{id}/status")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     public ResponseEntity<?> updateSuggestionStatus(@PathVariable Long id, @RequestParam BookSuggestionStatus status) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User librarian = userRepository.findByEmail(email).orElseThrow();

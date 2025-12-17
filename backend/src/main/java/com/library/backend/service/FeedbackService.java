@@ -70,7 +70,7 @@ public class FeedbackService {
     }
 
     @Transactional
-    public void updateSuggestionStatus(Long librarianId, Long suggestionId, BookSuggestionStatus status) {
+    public void updateSuggestionStatus(Long adminId, Long suggestionId, BookSuggestionStatus status) {
         BookSuggestion suggestion = suggestionRepository.findById(suggestionId)
                 .orElseThrow(() -> new RuntimeException("Suggestion not found."));
 
@@ -80,7 +80,7 @@ public class FeedbackService {
         // Bildirim (Sadece onay/red durumunda)
         if (status != BookSuggestionStatus.PENDING) {
             String msg = "Your book suggestion '" + suggestion.getTitle() + "' has been marked as: " + status;
-            notificationService.sendNotificationById(librarianId, suggestion.getSuggesterUser().getId(), msg);
+            notificationService.sendNotificationById(adminId, suggestion.getSuggesterUser().getId(), msg);
         }
     }
 }

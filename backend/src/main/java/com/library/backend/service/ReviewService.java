@@ -79,10 +79,31 @@ public class ReviewService {
         review.setComment(cleanComment);
         review.setSpoiler(request.isSpoiler());
         review.setHelpfulCount(0);
-
+        updateBookRating(book);
         reviewRepository.save(review);
     }
+    private void updateBookRating(Book book) {
+        // O kitaba ait tüm yorumları çek
+        List<Review> reviews = reviewRepository.findAllByBookId(book.getId());
 
+        if (reviews.isEmpty()) {
+            book.setRating(0.0);
+            book.setReviewCount(0);
+        } else {
+            double average = reviews.stream()
+                    .mapToInt(Review::getStars)
+                    .average()
+                    .orElse(0.0);
+
+            // Virgülden sonra tek hane kalsın (örn: 4.5)
+            double roundedAverage = Math.round(average * 10.0) / 10.0;
+
+            book.setRating(roundedAverage);
+            book.setReviewCount(reviews.size());
+        }
+
+        bookRepository.save(book);
+    }
     @Transactional
     // --- YENİ: yorum güncelleme servisi ---
     public void updateReview(String userEmail, Long reviewId, ReviewRequest request) {

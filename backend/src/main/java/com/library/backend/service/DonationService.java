@@ -19,7 +19,6 @@ public class DonationService {
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
     private final NotificationService notificationService;
-    private final GamificationService gamificationService; // Rozet kontrolü için
 
     @Transactional
     // 1. Bağış Talebi Oluştur (USER)
@@ -75,9 +74,7 @@ public class DonationService {
                 // Biz şimdilik not düşelim: "Kitap otomatik eklenmedi, librarian manuel eklemeli."
             }
 
-            // B. ROZET KONTROLÜ (Gamification)
-            // gamificationService.checkDonorBadges(donation.getUser().getId());
-            // (Bu metodu GamificationService'e eklemen gerekecek)
+
 
             // C. BİLDİRİM GÖNDER
             String message = "Your donation for '" + donation.getBookTitle() + "' has been accepted. Thank you for your support!";

@@ -15,4 +15,6 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     // Belirli bir kullanıcının belirli bir kitaba yorum yapıp yapmadığını kontrol et
     boolean existsByUserIdAndBookId(Long userId, Long bookId);
+
+    List<Review> findAllByBookId(Long bookId);
 }

@@ -3,6 +3,7 @@ package com.library.backend.dto.book;
 import com.library.backend.entity.Tag;
 import com.library.backend.entity.enums.BookType;
 import com.library.backend.entity.enums.RentalStatus;
+import jakarta.persistence.Column;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -26,4 +27,6 @@ public class BookResponse {
     private String categoryName; // Category objesi değil, sadece ismi
     private boolean isEditorsPick; // Editörün seçimi mi?
     private Set<String> tags;
+    private Double rating = 0.0; // Örn: 4.5
+    private Integer reviewCount = 0;
 }
