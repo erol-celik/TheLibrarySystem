@@ -2,6 +2,7 @@ package com.library.backend.service;
 
 import com.library.backend.dto.contribution.DonationRequest;
 import com.library.backend.entity.*;
+import com.library.backend.entity.enums.BookType;
 import com.library.backend.entity.enums.DonationStatus;
 import com.library.backend.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -58,7 +59,7 @@ public class DonationService {
             // A. KİTAP STOĞUNU GÜNCELLE
             // Kitap sistemde var mı? (İsme ve yazara göre basit kontrol)
             // Daha hassas kontrol için ISBN gerekirdi ama bağışta ISBN olmayabilir.
-            Optional<Book> existingBook = bookRepository.findByTitleContainingIgnoreCase(donation.getBookTitle())
+            Optional<Book> existingBook = bookRepository.findByTitleContainingIgnoreCaseAndBookType(donation.getBookTitle(), BookType.PHYSICAL)
                     .stream()
                     .filter(b -> b.getAuthor().equalsIgnoreCase(donation.getBookAuthor()))
                     .findFirst();
@@ -69,12 +70,18 @@ public class DonationService {
                 book.setTotalStock(book.getTotalStock() + 1);
                 bookRepository.save(book);
             } else {
-                // Kitap yoksa kütüphaneciye "Manuel Ekle" uyarısı dönülebilir
-                // veya burada otomatik eklenebilir.
-                // Biz şimdilik not düşelim: "Kitap otomatik eklenmedi, librarian manuel eklemeli."
+                String encodedTitle = java.net.URLEncoder.encode(donation.getBookTitle(), java.nio.charset.StandardCharsets.UTF_8);
+                String encodedAuthor = java.net.URLEncoder.encode(donation.getBookAuthor(), java.nio.charset.StandardCharsets.UTF_8);
+                String targetUrl = "/admin/add-book?title=" + encodedTitle + "&author=" + encodedAuthor;
+
+                String librarianMsg = "Onaylanan '" + donation.getBookTitle() + "' kitabı sistemde bulunamadı. Eklemek için tıklayın.";
+
+                // Gönderen: SYSTEM (null olabilir veya özel bir sistem kullanıcısı)
+                // Alan: librarian (User nesnesi)
+                User librarian = userRepository.findById(librarianId)
+                        .orElseThrow(() -> new RuntimeException("Librarian not found."));
+                notificationService.sendNotificationWithLink(null, librarian, librarianMsg, targetUrl);
             }
-
-
 
             // C. BİLDİRİM GÖNDER
             String message = "Your donation for '" + donation.getBookTitle() + "' has been accepted. Thank you for your support!";

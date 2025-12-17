@@ -121,6 +121,17 @@ public class NotificationService {
         notificationRepository.save(notification);
     }
 
+    @Transactional
+    public void sendNotificationWithLink(User sender, User recipient, String message, String url) {
+        Notification notification = new Notification();
+        notification.setSenderUser(sender);
+        notification.setRecipientUser(recipient);
+        notification.setMessage(message);
+        notification.setRead(false);
+        notification.setTargetUrl(url); // Linki buraya kaydediyoruz
+        notificationRepository.save(notification);
+    }
+
 
 // NotificationService.java içinde veya bir Mapper sınıfında:
 
@@ -151,4 +162,6 @@ public class NotificationService {
 
         return response;
     }
+
+
 }

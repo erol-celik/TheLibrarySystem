@@ -60,6 +60,8 @@ public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificat
             Pageable pageable
     );
 
+    Optional<Book> findByTitleContainingIgnoreCaseAndBookType(String bookTitle, BookType bookType);
+
     // Not: "Popüler" mantığı için şimdilik tüm kitapları çekip işlem yapacağız
     // veya ilerde Rental tablosuna bağlayacağız.
 }
