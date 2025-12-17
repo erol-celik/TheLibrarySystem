@@ -2,6 +2,7 @@ package com.library.backend.service;
 
 import com.library.backend.dto.book.AddBookRequest;
 import com.library.backend.dto.book.BlindDateBookResponse;
+import com.library.backend.dto.book.BookFilterRequest;
 import com.library.backend.dto.book.BookResponse;
 import com.library.backend.entity.Book;
 import com.library.backend.entity.Category;
@@ -12,9 +13,10 @@ import com.library.backend.repository.BookRepository;
 import com.library.backend.repository.CategoryRepository;
 import com.library.backend.repository.TagRepository;
 import jakarta.transaction.Transactional;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -35,13 +37,17 @@ public class BookService {
     }
 
     public List<BookResponse> getNewArrivals() {
-        List<Book> books = bookRepository.findTop10ByOrderByCreatedDateDesc();
-        return convertToDtoList(books);
+        List<Book> activeBooks = bookRepository.findTop10ByOrderByCreatedDateDesc().stream()
+                .filter(Book::isActive)
+                .collect(Collectors.toList());
+        return convertToDtoList(activeBooks);
     }
 
     public List<BookResponse> getEditorsChoice() {
-        List<Book> books = bookRepository.findByIsEditorsPickTrue();
-        return convertToDtoList(books);
+        List<Book> activeBooks = bookRepository.findByIsEditorsPickTrue().stream()
+                .filter(Book::isActive)
+                .collect(Collectors.toList());
+        return convertToDtoList(activeBooks);
     }
 
     public List<BookResponse> getAllBooks() {
@@ -51,7 +57,22 @@ public class BookService {
         return convertToDtoList(activeBooks);
     }
 
+    public Page<Book> getFilteredBooks(BookFilterRequest request) {
+        // Sıralama (Sort) mantığı burada kuruluyor
+        Sort sort = Sort.by(
+                request.getDirection().equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC,
+                request.getSortBy()
+        );
 
+        PageRequest pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
+
+        return bookRepository.searchBooks(
+                request.getKeyword(),   // Arama kelimesi
+                request.getCategory(),  // Kategori adı
+                request.getAvailable(), // Stok durumu
+                pageable
+        );
+    }
 
     @Transactional
     public BlindDateBookResponse getBlindDateBookByTag(String tagName) {
@@ -77,66 +98,8 @@ public class BookService {
         // 5. DTO'ya dönüştür ve döndür (Maskeleme)
         return mapToBlindDateResponse(selectedBook);
     }
-    public List<BookResponse> searchBooks(String keyword) {
-        // 1. Keyword kontrolü: Arama kelimesi boş veya çok kısaysa boş liste dön
-        if (keyword == null || keyword.trim().length() < 2) {
-            return Collections.emptyList();
-        }
-        List<Book> books = bookRepository.findByTitleContainingIgnoreCase(keyword.trim());
-        // 2. Repository metodu çağrılır.
-        // findByTitleContainingIgnoreCase metodu BookRepository'de tanımlanmalıdır.
-        // Bu metot, başlıkta keyword'ü içeren, büyük/küçük harfe bakılmaksızın tüm kitapları çeker.
-        List<Book> activeBooks = books.stream()
-                .filter(Book::isActive)
-                .collect(Collectors.toList());
-        return convertToDtoList(activeBooks);
-    }
-
-    public List<BookResponse> searchBooksByAuthor(String keyword) {
-        // 1. Keyword kontrolü: Arama kelimesi boş veya çok kısaysa boş liste dön
-        if (keyword == null || keyword.trim().length() < 2) {
-            return Collections.emptyList();
-        }
-        List<Book> books = bookRepository.findByAuthorIgnoreCase(keyword.trim());
-        // 2. Repository metodu çağrılır.
-        // findByTitleContainingIgnoreCase metodu BookRepository'de tanımlanmalıdır.
-        // Bu metot, başlıkta keyword'ü içeren, büyük/küçük harfe bakılmaksızın tüm kitapları çeker.
-        List<Book> activeBooks = books.stream()
-                .filter(Book::isActive)
-                .collect(Collectors.toList());
-        return convertToDtoList(activeBooks);
-    }
 
 
-    public List<BookResponse> searchBooksByStatus(RentalStatus keyword) {
-        // 1. Keyword kontrolü: Arama kelimesi boş veya çok kısaysa boş liste dön
-        if (keyword == null ) {
-            return Collections.emptyList();
-        }
-        List<Book> books = bookRepository.findByRentalStatus(keyword);
-        // 2. Repository metodu çağrılır.
-        // findByTitleContainingIgnoreCase metodu BookRepository'de tanımlanmalıdır.
-        // Bu metot, başlıkta keyword'ü içeren, büyük/küçük harfe bakılmaksızın tüm kitapları çeker.
-        List<Book> activeBooks = books.stream()
-                .filter(Book::isActive)
-                .collect(Collectors.toList());
-        return convertToDtoList(activeBooks);
-    }
-
-    public List<BookResponse> searchBooksByBookType(BookType keyword) {
-        // 1. Keyword kontrolü: Arama kelimesi boş veya çok kısaysa boş liste dön
-        if (keyword == null ) {
-            return Collections.emptyList();
-        }
-        List<Book> books = bookRepository.findByBookType(keyword);
-        // 2. Repository metodu çağrılır.
-        // findByTitleContainingIgnoreCase metodu BookRepository'de tanımlanmalıdır.
-        // Bu metot, başlıkta keyword'ü içeren, büyük/küçük harfe bakılmaksızın tüm kitapları çeker.
-        List<Book> activeBooks = books.stream()
-                .filter(Book::isActive)
-                .collect(Collectors.toList());
-        return convertToDtoList(activeBooks);
-    }
 
     public BookResponse addBook(AddBookRequest request){
         Book newBook = new Book();
@@ -204,6 +167,9 @@ public class BookService {
         // 5. Yanıtı döndür
         return response;
     }
+
+
+
     // --- Helper Metotlar ---
     //listi dto liste çevirir
     private List<BookResponse> convertToDtoList(List<Book> books) {
@@ -229,6 +195,8 @@ public class BookService {
         response.setPrice(book.getPrice());
         response.setEbookFilePath(book.getEbookFilePath());
         response.setAvailableStock(book.getAvailableStock());
+        response.setRating(book.getRating());
+        response.setReviewCount(book.getReviewCount());
 
         // Kategori String Birleştirme (Daha önce yazdığımız kod)
         String categoryName = "Genel";

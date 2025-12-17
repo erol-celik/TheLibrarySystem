@@ -1,8 +1,6 @@
 package com.library.backend.controller;
 
-import com.library.backend.dto.social.BadgeResponse;
 import com.library.backend.dto.social.ReviewRequest;
-import com.library.backend.service.GamificationService;
 import com.library.backend.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +16,7 @@ import java.util.List;
 public class SocialController {
 
     private final ReviewService reviewService;
-    private final GamificationService gamificationService;
+
 
     // yorum yap
     @PostMapping("/reviews")
@@ -59,11 +57,4 @@ public class SocialController {
         }
     }
 
-    // rozet durumu
-    @GetMapping("/users/me/badges")
-    @PreAuthorize("hasRole('ROLE_USER')")
-    public ResponseEntity<List<BadgeResponse>> getMyBadges() {
-        String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-        return ResponseEntity.ok(gamificationService.getUserBadgesStatus(userEmail));
-    }
 }

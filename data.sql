@@ -168,7 +168,7 @@ INSERT INTO users (id, created_at, updated_at, email, password, name, is_banned,
 INSERT INTO user_roles (user_id, role) VALUES (49, 'ADMIN');
 INSERT INTO wallet (wallet_id, user_id, balance) VALUES (49, 49, 635.68);
 INSERT INTO users (id, created_at, updated_at, email, password, name, is_banned, avatar_url, bio) VALUES (50, '2025-12-13 02:06:39', '2025-12-13 02:06:39', 'user50@library.com', '$2a$10$EzFsFPAXQoC6KyVr3of1Yuyzp0qPLzy4JlE4bdk07.2.vnH1NIzji', 'Gökperi Demir', false, 'https://api.dicebear.com/7.x/avataaars/svg?seed=50', 'Accusamus ratione dolores eum. Eaque consectetur in beatae.');
-INSERT INTO user_roles (user_id, role) VALUES (50, 'ADMIN');
+INSERT INTO user_roles (user_id, role) VALUES (50, 'LIBRARIAN');
 INSERT INTO wallet (wallet_id, user_id, balance) VALUES (50, 50, 364.83);
 INSERT INTO users (id, created_at, updated_at, email, password, name, is_banned, avatar_url, bio) VALUES (51, '2025-12-13 02:06:39', '2025-12-13 02:06:39', 'user51@library.com', '$2a$10$EzFsFPAXQoC6KyVr3of1Yuyzp0qPLzy4JlE4bdk07.2.vnH1NIzji', 'Yunt Özdal Çamurcuoğlu', false, 'https://api.dicebear.com/7.x/avataaars/svg?seed=51', 'Poor all your suggest international blue Republican.');
 INSERT INTO user_roles (user_id, role) VALUES (51, 'USER');

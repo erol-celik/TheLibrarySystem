@@ -54,13 +54,7 @@ public class User extends BaseEntity implements UserDetails {
                 .collect(Collectors.toList());
     }
 
-    @ManyToMany(fetch = FetchType.EAGER) // Genellikle rozetler profille birlikte yüklensin istenir (EAGER)
-    @JoinTable(
-            name = "user_badges", // Veritabanındaki ara tablo adı
-            joinColumns = @JoinColumn(name = "user_id"), // User tablosundan buraya gelen kolon
-            inverseJoinColumns = @JoinColumn(name = "badge_id") // Badge tablosundan gelen kolon
-    )
-    private Set<Badge> badges = new HashSet<>();
+
 
     @Override
     public String getUsername() {

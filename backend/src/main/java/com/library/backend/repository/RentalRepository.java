@@ -24,4 +24,6 @@ public interface RentalRepository extends JpaRepository<Rental, Long> {
     // 2. Teslim tarihi geçmiş (Due Date < Bugün) VE hala iade edilmemiş (APPROVED) kitaplar
     @org.springframework.data.jpa.repository.Query("SELECT r FROM Rental r WHERE r.dueDate < CURRENT_DATE AND r.status = 'APPROVED'")
     List<Rental> findOverdueRentals();
+
+    List<Rental> findAllByStatus(RentalStatus status);
 }

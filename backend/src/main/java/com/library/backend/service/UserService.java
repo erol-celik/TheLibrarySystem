@@ -52,7 +52,6 @@ public class UserService {
         response.setWalletBalance(balance);
         response.setAvatarUrl(user.getAvatarUrl());
         response.setBio(user.getBio());
-        response.setBadges(user.getBadges());
         return response;
     }
 

@@ -1,5 +1,6 @@
 package com.library.backend.controller;
 
+import com.library.backend.dto.notification.NotificationResponse;
 import com.library.backend.entity.Notification;
 import com.library.backend.service.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -19,15 +20,15 @@ public class NotificationController {
 
     // bildirimlerimi getir
     @GetMapping
-    @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_LIBRARIAN') or hasRole('ROLE_ADMIN')")
-    public ResponseEntity<List<Notification>> getMyNotifications() {
+    @PreAuthorize("hasAuthority('ROLE_USER') or hasAuthority('ROLE_LIBRARIAN') or hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<List<NotificationResponse>> getMyNotifications() {
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(notificationService.getMyNotifications(userEmail));
     }
 
     // okundu yap
     @PutMapping("/{id}/read")
-    @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_LIBRARIAN') or hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_USER') or hasAuthority('ROLE_LIBRARIAN') or hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<?> markAsRead(@PathVariable Long id) {
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         try {
