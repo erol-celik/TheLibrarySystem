@@ -1,5 +1,6 @@
 package com.library.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.library.backend.entity.enums.BookType;
 import com.library.backend.entity.enums.RentalStatus;
 import jakarta.persistence.*;
@@ -29,7 +30,7 @@ public class Book  extends BaseEntity{
     @Column(nullable = false)
     private RentalStatus rentalStatus;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "isbn_no", nullable = false, unique = true)
     private String isbn; // Barkod/ISBN no
 
     @Column(name = "publisher")
@@ -72,26 +73,27 @@ public class Book  extends BaseEntity{
     @Column(name = "is_editors_pick")
     private boolean isEditorsPick = false; // Editörün seçimi mi?
 
-    // REZERVASYON (Opsiyonel - Tek Kişilik)
-    @Column(name = "reserved_by_user_id")
-    private Long reservedByUserId;
-
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
     // --- DÜZELTME BURADA YAPILDI ---
     // Hatanın sebebi burasıydı. Category entity'si "category" adında tekil bir alan bekliyordu.
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    private Category category;
-
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "book_categories",
+            joinColumns = @JoinColumn(name = "book_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<Category> categories = new HashSet<>();
     // NOT: Artık "Liste" olmadığı için addCategory ve removeCategory metodlarını kaldırdık.
     // Lombok sayesinde "setCategory(category)" metodun zaten hazır.
 
     //2. TAGLER (Kör Randevu / Vibe Filtresi İçin - YENİ)
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JsonIgnore
     @JoinTable(
             name = "book_tags",
+
             joinColumns = @JoinColumn(name = "book_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
