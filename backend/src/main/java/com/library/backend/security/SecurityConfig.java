@@ -3,7 +3,6 @@ package com.library.backend.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -13,11 +12,16 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService; // <<< KRİTİK IMPORT BU
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -26,45 +30,53 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final UserDetailsService userDetailsService;
 
-    // Hataya sebep olan değişken bu.
-    // Yukarıdaki 'import org.springframework.security.core.userdetails.UserDetailsService;' satırı şart!
-    private final org.springframework.security.core.userdetails.UserDetailsService userDetailsService;
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .securityContext((securityContext) -> securityContext
-                        .requireExplicitSave(false) // Varsayılan ayar, ancak context'in doğru kurulduğundan emin olmak için
-                )
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth
-                        // 1. HERKESE AÇIK YOLLAR
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/books/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/books/blind-date/**").permitAll()
-                        .requestMatchers("/api/v1/test/**").permitAll()
-
-                        // 2. ÖZEL YOLLAR (Ali Kurnazlık Yapar Senaryosu)
-                        .requestMatchers("/api/admin/**").hasAllAuthorities("ROLE_ADMIN")
-                        .requestMatchers("/api/librarian/**").hasAnyRole("LIBRARIAN", "ADMIN")
-
-                        // 3. DİĞER HER ŞEY İÇİN GİRİŞ ŞART
-                        .anyRequest().authenticated()
-                )
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(AbstractHttpConfigurer::disable)
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+                .requestMatchers("/api/librarian/**").hasAnyAuthority("ROLE_LIBRARIAN", "ROLE_ADMIN")
+                .anyRequest().authenticated()
+            )
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authenticationProvider(authenticationProvider())
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider() {
-        // YENİ YÖNTEM: UserDetailsService artık constructor içinde verilmeli
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userDetailsService);
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:3000", 
+                "http://localhost:5173", 
+                "http://127.0.0.1:3000", 
+                "http://127.0.0.1:5173"
+        ));
+        
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
+        configuration.setAllowCredentials(true);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
 
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        // DİKKAT: Aldığın hataya özel düzeltme burasıdır.
+        // Standart dışı bir kullanım olsa da derleyicinin istediği format budur:
+        // Constructor injection kullanılıyor, setter kullanılmıyor.
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userDetailsService);
+        
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
