@@ -24,7 +24,7 @@ public class BookResponse {
     private BigDecimal price;
     private String ebookFilePath;
     private String imageUrl; // Kapak resmi için
-    private String categoryName; // Category objesi değil, sadece ismi
+    private Set<String> categories;
     private boolean isEditorsPick; // Editörün seçimi mi?
     private Set<String> tags;
     private Double rating = 0.0; // Örn: 4.5

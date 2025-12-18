@@ -37,6 +37,12 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name="bio", columnDefinition = "TEXT")
     private String bio;
 
+    @Column(name = "phone_number")
+    private String phoneNumber;
+
+    @Column(name = "address", columnDefinition = "TEXT")
+    private String address;
+
     // --- SCORE ALANI BURADAN SİLİNDİ ---
 
     @ElementCollection(targetClass = RoleType.class, fetch = FetchType.EAGER)
@@ -53,8 +59,6 @@ public class User extends BaseEntity implements UserDetails {
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
                 .collect(Collectors.toList());
     }
-
-
 
     @Override
     public String getUsername() {

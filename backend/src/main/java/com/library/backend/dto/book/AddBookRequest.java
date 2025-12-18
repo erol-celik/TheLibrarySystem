@@ -23,6 +23,6 @@ public class AddBookRequest {
     private BigDecimal price;
     private String ebookFilePath;
     private String imageUrl; // Kapak resmi için
-    private String category; // Category objesi değil, sadece ismi
+    private Set<String> categories;
     private Set<String> tags;
 }

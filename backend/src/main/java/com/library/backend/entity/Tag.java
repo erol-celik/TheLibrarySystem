@@ -23,7 +23,7 @@ public class Tag extends BaseEntity {
 
     // --- Many-to-Many İlişki ---
     // Bu taraf, Book sınıfında tanımlanan ilişkiye bağlıdır (mappedBy).
-    @ManyToMany(mappedBy = "tags", fetch = FetchType.EAGER)
+    @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
     @JsonIgnore
     private Set<Book> books = new HashSet<>();
 }
