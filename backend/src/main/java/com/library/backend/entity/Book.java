@@ -76,18 +76,24 @@ public class Book  extends BaseEntity{
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
-    // --- DÜZELTME BURADA YAPILDI ---
-    // Hatanın sebebi burasıydı. Category entity'si "category" adında tekil bir alan bekliyordu.
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.EAGER) // Kitabı çektiğinde kategorisini görmek istersin, burası EAGER olabilir.
     @JoinTable(
             name = "book_categories",
             joinColumns = @JoinColumn(name = "book_id"),
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
     private Set<Category> categories = new HashSet<>();
-    // NOT: Artık "Liste" olmadığı için addCategory ve removeCategory metodlarını kaldırdık.
-    // Lombok sayesinde "setCategory(category)" metodun zaten hazır.
 
+    // Helper metodlar (Service katmanında kullanılır)
+    public void addCategory(Category category) {
+        this.categories.add(category);
+        category.getBooks().add(this); // Java tarafında listeleri senkronize tutar
+    }
+
+    public void removeCategory(Category category) {
+        this.categories.remove(category);
+        category.getBooks().remove(this);
+    }
     //2. TAGLER (Kör Randevu / Vibe Filtresi İçin - YENİ)
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JsonIgnore

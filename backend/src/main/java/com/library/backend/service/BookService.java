@@ -28,6 +28,7 @@ public class BookService {
     private final BookRepository bookRepository;
     private final TagRepository tagRepository;
     private final CategoryRepository categoryRepository;
+
     // --- CONSTRUCTOR INJECTION (Manuel ve Garantili) ---
     @Autowired // Spring'e "Bunu kullan" diyoruz
     public BookService(BookRepository bookRepository, TagRepository tagRepository, CategoryRepository categoryRepository) {
@@ -78,19 +79,27 @@ public class BookService {
     public BlindDateBookResponse getBlindDateBookByTag(String tagName) {
         // 1. Tag Adı ile Tag Entity'sini bulma
         Tag tag = tagRepository.findByNameIgnoreCase(tagName.trim())
-                .orElseThrow(() -> new RuntimeException("Geçersiz etiket adı: " + tagName));
+                .orElseThrow(() -> new RuntimeException("Invalid tag name: " + tagName));
 
         // 2. Tag'in sahip olduğu kitap listesini alma
         // Bu, eğer Tag Entity'nizde List<Book> books alanı varsa çalışacaktır.
         Set<Book> candidateBookSet = tag.getBooks();
         List<Book> candidateBooksList = new ArrayList<>(candidateBookSet);
+
         // 3. Kontrol: Eğer hiç kitap yoksa hata döndür
         if (candidateBooksList.isEmpty()) {
-            throw new RuntimeException("'" + tagName + "' etiketiyle eşleşen kitap bulunamadı.");
+            throw new RuntimeException("No books found matching tag: " + tagName);
         }
+
         List<Book> activeBooksList = candidateBooksList.stream()
                 .filter(Book::isActive)
                 .collect(Collectors.toList());
+
+        // Eğer aktif kitap yoksa yine hata verilmeli (boş liste hatası almamak için)
+        if (activeBooksList.isEmpty()) {
+            throw new RuntimeException("No active books found matching tag: " + tagName);
+        }
+
         // 4. Rastgele Kitap Seçimi
         Random random = new Random();
         Book selectedBook = activeBooksList.get(random.nextInt(activeBooksList.size()));
@@ -98,8 +107,6 @@ public class BookService {
         // 5. DTO'ya dönüştür ve döndür (Maskeleme)
         return mapToBlindDateResponse(selectedBook);
     }
-
-
 
     public BookResponse addBook(AddBookRequest request){
         Book newBook = new Book();
@@ -113,6 +120,7 @@ public class BookService {
         newBook.setPageCount(request.getPageCount());
         newBook.setPrice(request.getPrice());
         newBook.setImageUrl(request.getImageUrl());
+
         if(request.getBookType() == BookType.DIGITAL){
             newBook.setAvailableStock(Integer.MAX_VALUE);
             newBook.setTotalStock(Integer.MAX_VALUE);
@@ -123,15 +131,22 @@ public class BookService {
 
         newBook.setRentalStatus(RentalStatus.AVAILABLE);
 
-        Category category = categoryRepository.findByName(request.getCategory())
-                .orElseThrow(() -> new RuntimeException("Kategori bulunamadı"));
-        newBook.setCategory(category);
+        // KATEGORİ DÜZELTMESİ: Artık liste olduğu için addCategory kullanıyoruz.
+        // request.getCategories() bir Set<String> dönüyor, her birini bulup ekliyoruz.
+        if (request.getCategories() != null) {
+            for (String catName : request.getCategories()) {
+                Category category = categoryRepository.findByName(catName)
+                        .orElseThrow(() -> new RuntimeException("Category not found: " + catName));
+                newBook.addCategory(category); // DÜZELTİLDİ: Entity içindeki helper metod
+            }
+        }
 
         newBook.setEbookFilePath(request.getEbookFilePath());
         newBook.setActive(true);
+
         Set<Tag> tags = request.getTags().stream()
                 .map(tagName -> tagRepository.findByName(tagName)
-                        .orElseThrow(() -> new IllegalArgumentException("Etiket bulunamadı: " + tagName)))
+                        .orElseThrow(() -> new IllegalArgumentException("Tag not found: " + tagName)))
                 .collect(Collectors.toSet());
         newBook.setTags(tags);
 
@@ -139,27 +154,23 @@ public class BookService {
         return mapToResponse(newBook);
     }
 
-// BookService.java
-
-// ... gerekli importlar (Optional, IllegalArgumentException, BookNotFoundException, BookResponse)
-
     public BookResponse deleteBookByIsbn(String isbn) {
 
         // 1. Kitabı ISBN'e göre bul
         Book bookToDelete = bookRepository.findByIsbn(isbn);
-        // Burada IllegalArgumentException kullanarak 400 Bad Request döndürüyoruz.
+        // Burada repository null dönerse kontrol gerekebilir, şimdilik varsayılan akışta bırakıyoruz.
 
         // 2. KRİTİK KONTROL: Stok Durumu
         // Kitap silinmeden önce kiralanmış kopyaları olmamalıdır.
         if (bookToDelete.getTotalStock() != bookToDelete.getAvailableStock()) {
-            throw new IllegalStateException("Kitap silinemez: Tüm kopyalar iade edilmeden silme işlemi yapılamaz.");
+            throw new IllegalStateException("Book cannot be deleted: All copies must be returned before deletion.");
             // IllegalStateException kullanarak 409 Conflict veya 500 Internal Server Error döndürülebilir.
         }
 
         // 3. Yanıt DTO'sunu Kaydet (Silinmeden önceki veriler)
         // Silinmiş Book Entity'sini döndürmek mantıklı olmadığı için,
         // silinmeden önce Response DTO'sunu oluştururuz.
-        BookResponse response = mapToResponse(bookToDelete); // Farz edelim bu metot var
+        BookResponse response = mapToResponse(bookToDelete);
 
         // 4. Soft Silme İşlemi
         bookToDelete.setActive(false);
@@ -167,8 +178,6 @@ public class BookService {
         // 5. Yanıtı döndür
         return response;
     }
-
-
 
     // --- Helper Metotlar ---
     //listi dto liste çevirir
@@ -198,12 +207,17 @@ public class BookService {
         response.setRating(book.getRating());
         response.setReviewCount(book.getReviewCount());
 
-        // Kategori String Birleştirme (Daha önce yazdığımız kod)
-        String categoryName = "Genel";
-
-        if (book.getCategory() != null) {
-            categoryName = book.getCategory().getName();
+        // Kategori DÜZELTMESİ
+        // Artık book.getCategory() yok, book.getCategories() var.
+        Set<String> categoryNames = new HashSet<>();
+        if (book.getCategories() != null) {
+            categoryNames = book.getCategories().stream()
+                    .map(Category::getName)
+                    .collect(Collectors.toSet());
         }
+        // DTO tarafını da Set<String> categories olarak değiştirdiğin için burası uyumlu hale geldi.
+        response.setCategories(categoryNames);
+
         Set<String> tagNames = new HashSet<>();
         if (book.getTags() != null) {
             tagNames.addAll(
@@ -213,7 +227,6 @@ public class BookService {
             );
         }
         response.setTags(tagNames);
-        response.setCategoryName(categoryName);
 
         return response;
     }
@@ -234,6 +247,4 @@ public class BookService {
 
         return dto;
     }
-
-
 }

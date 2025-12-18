@@ -10,13 +10,18 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      # Veriler proje klasöründeki 'mysql-data' klasörüne kaydedilir
       - ./mysql-data:/var/lib/mysql
-      # Ana dizindeki data.sql dosyasını alır ve veritabanı ilk açıldığında yükler
       - ./data.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - library-network
     command: --default-authentication-plugin=mysql_native_password
+    # --- YENİ EKLENEN KISIM: HEALTHCHECK ---
+    # MySQL'e her 10 saniyede bir ping atar. Cevap alamazsa 'unhealthy' der.
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # 2. BACKEND SERVİSİ
   backend:
@@ -25,15 +30,17 @@ services:
     ports:
       - "8080:8080"
     environment:
-      # Dikkat: 'localhost' yerine servis adı olan 'mysqldb' kullanılır
+      # 'mysqldb' docker içindeki hostname'dir.
       SPRING_DATASOURCE_URL: jdbc:mysql://mysqldb:3306/library_db_v2?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
     networks:
       - library-network
+    # --- DEĞİŞTİRİLEN KISIM ---
     depends_on:
-      - mysqldb
+      mysqldb:
+        condition: service_healthy # MySQL "Ben hazırım" diyene kadar Backend başlamaz.
 
   # 3. FRONTEND SERVİSİ
   frontend:
@@ -41,7 +48,6 @@ services:
     container_name: library_frontend
     ports:
       - "3000:3000"
-    # Windows'ta dosya değişimini algılaması için gerekli ayar
     environment:
       - WATCHPACK_POLLING=true 
     stdin_open: true
