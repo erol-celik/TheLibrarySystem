@@ -16,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -40,6 +41,12 @@ public class BookController {
     @GetMapping("/books")
     public ResponseEntity<List<BookResponse>> getAllBooks() {
         return ResponseEntity.ok(bookService.getAllBooks());
+    }
+
+    @GetMapping("/categories")
+    public ResponseEntity<List<Map<String, String>>> getAllCategories() {
+        // BookService üzerinden tüm kategorileri çekip sadece isimlerini döndürüyoruz
+        return ResponseEntity.ok(bookService.getAllCategoriesForFrontend());
     }
 
     // Dinamik filtreleme ve sayfalama endpoint'i

@@ -52,6 +52,8 @@ public class UserService {
         response.setWalletBalance(balance);
         response.setAvatarUrl(user.getAvatarUrl());
         response.setBio(user.getBio());
+        response.setPhone(user.getPhoneNumber()); // Eğer DTO'da varsa
+        response.setAddress(user.getAddress());
         return response;
     }
 

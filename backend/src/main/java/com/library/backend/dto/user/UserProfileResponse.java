@@ -17,6 +17,9 @@ public class UserProfileResponse {
     private BigDecimal walletBalance;
     String avatarUrl;
     String bio;
+    String address;
+    String phone;
+
 
 
     public UserProfileResponse() {

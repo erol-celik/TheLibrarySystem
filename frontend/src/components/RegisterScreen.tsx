@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { Library, User, Mail, Lock } from 'lucide-react';
 
 interface RegisterScreenProps {
-  onRegister: (username: string, email: string, password: string) => void;
+  onRegister: (name: string, email: string, password: string) => void;
   onBackToLogin: () => void;
 }
 
 export function RegisterScreen({ onRegister, onBackToLogin }: RegisterScreenProps) {
   const [formData, setFormData] = useState({
-    username: '',
+    name: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -20,7 +20,7 @@ export function RegisterScreen({ onRegister, onBackToLogin }: RegisterScreenProp
     e.preventDefault();
     setError('');
 
-    if (!formData.username || !formData.email || !formData.password) {
+    if (!formData.name || !formData.email || !formData.password) {
       setError('All fields are required');
       return;
     }
@@ -35,7 +35,7 @@ export function RegisterScreen({ onRegister, onBackToLogin }: RegisterScreenProp
       return;
     }
 
-    onRegister(formData.username, formData.email, formData.password);
+    onRegister(formData.name, formData.email, formData.password);
   };
 
   return (
@@ -59,14 +59,14 @@ export function RegisterScreen({ onRegister, onBackToLogin }: RegisterScreenProp
           <div>
             <label className="flex items-center gap-2 text-gray-700 mb-2">
               <User className="w-4 h-4" />
-              <span>Username *</span>
+              <span>name *</span>
             </label>
             <input
               type="text"
-              value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="Enter your username"
+              placeholder="Enter your name"
               required
             />
           </div>

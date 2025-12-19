@@ -29,6 +29,10 @@ public class AuthService {
             throw new RuntimeException("Bu email zaten kayıtlı.");
         }
 
+        if (request.getPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("Comfirm password hatalı.");
+        }
+
         // 2. Kullanıcıyı oluştur
         User user = new User();
         user.setName(request.getName());
