@@ -34,7 +34,9 @@ public class DashboardService {
         // Dijital kitap sayısı
         long totalDigital = bookRepository.count(); // Bunu bookType ile filtrelemek daha doğru olur ama şimdilik count.
         // Doğrusu: bookRepository.findByBookType(BookType.DIGITAL).size(); (Repository'e ekleyebilirsin)
+        long totalUsers = userRepository.count();
 
+        long activeRentals = rentalRepository.countByStatus(com.library.backend.entity.enums.RentalStatus.APPROVED);
         // Kategori Dağılımı (Pie Chart)
         List<Object[]> distribution = bookRepository.countBooksByCategory();
         Map<String, Long> categoryMap = new HashMap<>();
@@ -43,8 +45,10 @@ public class DashboardService {
         }
 
         return HomepageStatsResponse.builder()
-                .totalBooks(totalBooks)
-                .totalDigitalBooks(totalDigital) // Geçici olarak total verdim
+                .totalBooks(bookRepository.count())
+                .totalUsers(userRepository.count()) // Veritabanından üye sayısını çek
+                .activeRentals(rentalRepository.countByStatus(com.library.backend.entity.enums.RentalStatus.APPROVED)) // Ödünç sayısını çek
+                .totalDigitalBooks(bookRepository.count()) // Filtreleme eklenebilir
                 .categoryDistribution(categoryMap)
                 .build();
     }

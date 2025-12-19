@@ -9,9 +9,10 @@ interface HomePageProps {
   onCategorySelect?: (category: string) => void;
   totalUsers?: number;
   booksBorrowedCount?: number;
+  totalBooksCount?: number;
 }
 
-export function HomePage({ books = [], onSelectBook, onNavigateToCatalog, onNavigateToBlindDate, onCategorySelect, totalUsers = 0, booksBorrowedCount = 0 }: HomePageProps) {
+export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavigateToCatalog, onNavigateToBlindDate, onCategorySelect, totalUsers = 0, booksBorrowedCount = 0 }: HomePageProps) {
   const [showBlindDate, setShowBlindDate] = useState(false);
   const [revealStep, setRevealStep] = useState(0);
   const [randomBook, setRandomBook] = useState<any>(null);
@@ -248,7 +249,7 @@ export function HomePage({ books = [], onSelectBook, onNavigateToCatalog, onNavi
             </div>
             <div>
               <p className="text-purple-100">Total Books</p>
-              <p className="text-3xl">{books.length.toLocaleString()}</p>
+              <p className="text-3xl">{totalBooksCount.toLocaleString()}</p>
             </div>
           </div>
         </div>

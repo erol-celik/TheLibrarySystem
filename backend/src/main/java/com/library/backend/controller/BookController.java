@@ -51,11 +51,8 @@ public class BookController {
 
     // Dinamik filtreleme ve sayfalama endpoint'i
     @GetMapping("/books/filter")
-    public ResponseEntity<Page<Book>> getFilteredBooks(
-            @ModelAttribute BookFilterRequest request) { // Sorgu parametreleri DTO'ya map edilir.
-
-        Page<Book> booksPage = bookService.getFilteredBooks(request);
-        return ResponseEntity.ok(booksPage);
+    public ResponseEntity<Page<BookResponse>> getFilteredBooks(@ModelAttribute BookFilterRequest request) {
+        return ResponseEntity.ok(bookService.getFilteredBooks(request));
     }
 
 

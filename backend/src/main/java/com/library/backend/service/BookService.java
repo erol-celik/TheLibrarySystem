@@ -64,8 +64,11 @@ public class BookService {
                 .collect(Collectors.toList());
     }
 
-    public Page<Book> getFilteredBooks(BookFilterRequest request) {
+    public Page<BookResponse> getFilteredBooks(BookFilterRequest request) {
         // Sıralama (Sort) mantığı burada kuruluyor
+        String keyword = (request.getKeyword() != null && !request.getKeyword().isBlank()) ? request.getKeyword() : null;
+        String category = (request.getCategory() != null && !request.getCategory().isBlank()) ? request.getCategory() : null;
+
         Sort sort = Sort.by(
                 request.getDirection().equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC,
                 request.getSortBy()
@@ -73,12 +76,15 @@ public class BookService {
 
         PageRequest pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
 
-        return bookRepository.searchBooks(
-                request.getKeyword(),   // Arama kelimesi
-                request.getCategory(),  // Kategori adı
-                request.getAvailable(), // Stok durumu
+        Page<Book> booksPage = bookRepository.searchBooks(
+                keyword,   // request.getKeyword() yerine keyword
+                category,  // request.getCategory() yerine category
+                request.getAvailable(),
                 pageable
         );
+
+        // 3. PageImpl uyarısını çözen kısım: Entity'yi DTO'ya map'liyoruz
+        return booksPage.map(this::mapToResponse);
     }
 
     @Transactional
