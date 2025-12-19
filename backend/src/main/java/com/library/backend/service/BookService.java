@@ -58,6 +58,12 @@ public class BookService {
         return convertToDtoList(activeBooks);
     }
 
+    public List<Map<String, String>> getAllCategoriesForFrontend() {
+        return categoryRepository.findAll().stream()
+                .map(c -> Map.of("name", c.getName()))
+                .collect(Collectors.toList());
+    }
+
     public Page<Book> getFilteredBooks(BookFilterRequest request) {
         // Sıralama (Sort) mantığı burada kuruluyor
         Sort sort = Sort.by(

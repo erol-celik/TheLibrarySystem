@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Toaster } from 'sonner';
-import { toast } from 'sonner';
+import { Toaster, toast } from 'sonner';
 
 // Componentler
 import { LoginScreen } from './components/LoginScreen';
@@ -19,14 +18,14 @@ import { UserService } from './services/UserService';
 import { Book, UserAccount } from './types';
 
 export default function App() {
-  // --- STATE ---
+  // --- STATE (Hafıza Alanları) ---
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [showRegister, setShowRegister] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Veri State'leri (Artık boş dizilerle başlıyor, Backend dolduracak)
+  // Veri State'leri
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
@@ -34,18 +33,15 @@ export default function App() {
   // Seçili Kitap (Modal için)
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
 
-  // --- INIT (Uygulama Açılışı) ---
+  // --- INIT (Uygulama İlk Açıldığında Token Kontrolü) ---
   useEffect(() => {
     const initApp = async () => {
       const token = localStorage.getItem('token');
       if (token) {
         try {
-          // Token varsa kullanıcının en güncel halini Backend'den çek
           const user = await UserService.getMe();
           setCurrentUser(user);
           setIsLoggedIn(true);
-          
-          // Kullanıcı giriş yaptıysa kitapları da çekelim
           fetchLibraryData();
         } catch (error) {
           console.error("Oturum yenilenemedi:", error);
@@ -67,26 +63,50 @@ export default function App() {
       setBooks(booksData);
       setCategories(catsData);
     } catch (error) {
-      console.error("Kütüphane verileri çekilemedi", error);
-      toast.error("Sunucuya bağlanılamadı.");
+      console.error("Veriler çekilemedi:", error);
+      toast.error("Kütüphane verileri yüklenirken bir hata oluştu.");
     } finally {
       setIsLoadingData(false);
     }
   };
 
-  // --- AUTH İŞLEMLERİ ---
+  // --- AUTH İŞLEMLERİ (Giriş / Kayıt / Çıkış) ---
+
   const handleLogin = async (email: string, pass: string) => {
     try {
       await AuthService.login({ email, password: pass });
-      // Login başarılı olunca profili çek
       const user = await UserService.getMe();
       setCurrentUser(user);
       setIsLoggedIn(true);
-      fetchLibraryData(); // Kitapları yükle
+      fetchLibraryData();
+      toast.success(`Tekrar hoş geldin, ${user.username}!`);
       return true;
     } catch (error: any) {
-      toast.error("Giriş başarısız. Bilgileri kontrol et.");
+      toast.error("Giriş başarısız. Bilgilerinizi kontrol edin.");
       return false;
+    }
+  };
+
+  const handleRegister = async (name: string, email: string, pass: string) => {
+    try {
+      // 1. Backend'e kayıt isteği at (AuthService token'ı saklayacak)
+      await AuthService.register({ name, email, password: pass });
+
+      // 2. Kayıt başarılıysa kullanıcının detaylı profilini çek
+      const user = await UserService.getMe();
+
+      // 3. Stateleri güncelle (Otomatik giriş yap)
+      setCurrentUser(user);
+      setIsLoggedIn(true);
+      setShowRegister(false);
+      fetchLibraryData(); // Kitapları getir
+
+      toast.success("Hesabınız başarıyla oluşturuldu! Hoş geldiniz.");
+    } catch (error: any) {
+      console.error("Kayıt hatası:", error.response?.data);
+      // Hem .message hem de .error alanlarını kontrol ediyoruz
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || "Kayıt sırasında bir hata oluştu.";
+      toast.error(errorMessage);
     }
   };
 
@@ -94,137 +114,128 @@ export default function App() {
     AuthService.logout();
     setIsLoggedIn(false);
     setCurrentUser(null);
-    setBooks([]); // Güvenlik için veriyi temizle
+    setBooks([]);
+    toast.info("Oturum kapatıldı.");
   };
 
-  // --- RENDER ---
-
-  if (showRegister) {
-    return (
-      <RegisterScreen 
-        onRegister={async (name, email, pass) => {
-           try {
-             await AuthService.register({ name, email, password: pass });
-             toast.success("Kayıt başarılı! Giriş yapabilirsin.");
-             setShowRegister(false);
-           } catch(e) { toast.error("Kayıt başarısız."); }
-        }} 
-        onBackToLogin={() => setShowRegister(false)} 
-      />
-    );
-  }
-
-  if (!isLoggedIn || !currentUser) {
-    return (
-      <LoginScreen 
-        onLogin={handleLogin} 
-        onRegister={() => setShowRegister(true)} 
-      />
-    );
-  }
-
+  // --- RENDER (Ekran Çizimi) ---
   return (
-    <>
-      <Toaster position="top-center" richColors />
-      <div className={`flex min-h-screen ${isDarkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
-        
-        {/* Sidebar */}
-        <Sidebar 
-          userRole={currentUser.role}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onLogout={handleLogout}
-          notificationCount={0}
-          totalRevenue={0}
-        />
+      <>
+        {/* Bildirimlerin her zaman görünmesi için Toaster en dışta olmalı */}
+        <Toaster position="top-center" richColors />
 
-        {/* Ana İçerik */}
-        <div className="flex-1 overflow-x-hidden">
-          <header className="bg-white dark:bg-gray-800 border-b p-6 flex justify-between items-center">
-            <h1 className="text-2xl font-bold capitalize text-gray-800 dark:text-white">
-              {activeTab}
-            </h1>
-            <div className="flex items-center gap-4">
-               <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                 {currentUser.username} (${currentUser.walletBalance.toFixed(2)})
-               </span>
+        {showRegister ? (
+            <RegisterScreen
+                onRegister={handleRegister}
+                onBackToLogin={() => setShowRegister(false)}
+            />
+        ) : (!isLoggedIn || !currentUser) ? (
+            <LoginScreen
+                onLogin={handleLogin}
+                onRegister={() => setShowRegister(true)}
+            />
+        ) : (
+            /* ANA UYGULAMA PANELİ */
+            <div className={`flex min-h-screen ${isDarkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
+
+              <Sidebar
+                  userRole={currentUser.role}
+                  activeTab={activeTab}
+                  onTabChange={setActiveTab}
+                  onLogout={handleLogout}
+                  notificationCount={0}
+                  totalRevenue={0}
+              />
+
+              <div className="flex-1 overflow-x-hidden">
+                <header className="bg-white dark:bg-gray-800 border-b p-6 flex justify-between items-center shadow-sm">
+                  <h1 className="text-2xl font-bold capitalize text-gray-800 dark:text-white">
+                    {activeTab === 'home' ? 'Kütüphane Paneli' : activeTab}
+                  </h1>
+                  <div className="flex items-center gap-4">
+                 <span className="text-sm font-semibold px-3 py-1 bg-purple-100 text-purple-700 rounded-full">
+                   {currentUser.username} • ${currentUser.walletBalance.toFixed(2)}
+                 </span>
+                  </div>
+                </header>
+
+                <main className="p-6">
+                  {isLoadingData ? (
+                      <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                      </div>
+                  ) : (
+                      <>
+                        {activeTab === 'home' && (
+                            <HomePage
+                                books={books}
+                                onSelectBook={setSelectedBook}
+                                onNavigateToCatalog={() => setActiveTab('catalog')}
+                                onNavigateToBlindDate={() => setActiveTab('blinddate')}
+                                onCategorySelect={() => setActiveTab('catalog')}
+                                totalUsers={0}
+                                booksBorrowedCount={0}
+                            />
+                        )}
+
+                        {activeTab === 'catalog' && (
+                            <BookCatalog
+                                books={books}
+                                categories={categories}
+                                searchTerm=""
+                                onSearchChange={() => {}}
+                                selectedCategory=""
+                                onCategoryChange={() => {}}
+                                selectedStatus="all"
+                                onStatusChange={() => {}}
+                                onSelectBook={setSelectedBook}
+                            />
+                        )}
+
+                        {activeTab === 'wallet' && (
+                            <Wallet
+                                balance={currentUser.walletBalance}
+                                currentUsername={currentUser.username}
+                                transactions={[]}
+                                onAddFunds={() => toast.info("Ödeme sistemi yakında eklenecek.")}
+                            />
+                        )}
+
+                        {activeTab === 'account' && (
+                            <AccountManagement
+                                username={currentUser.username}
+                                email={currentUser.email}
+                                role={currentUser.role}
+                                phone={currentUser.phone}
+                                address={currentUser.address}
+                                penaltyCount={currentUser.penaltyCount}
+                                userRole={currentUser.role}
+                                onUpdateProfile={() => toast.info("Profil güncelleme özelliği yakında.")}
+                            />
+                        )}
+                      </>
+                  )}
+                </main>
+              </div>
+
+              {/* Kitap Detay Modalı */}
+              {selectedBook && (
+                  <BookDetailModal
+                      book={selectedBook}
+                      onClose={() => setSelectedBook(null)}
+                      userRole={currentUser.role}
+                      currentUsername={currentUser.username}
+                      hasActiveBorrow={false}
+                      currentUserBadge={currentUser.badge}
+                      onBorrow={() => toast.info("Kiralama işlemi başlatılıyor...")}
+                      onPurchase={() => toast.info("Satın alma işlemi başlatılıyor...")}
+                      onAddComment={() => {}}
+                      onDeleteComment={() => {}}
+                      onEditBook={() => {}}
+                  />
+              )}
             </div>
-          </header>
-
-          <main className="p-6">
-            {isLoadingData ? (
-              <div className="text-center p-10">Yükleniyor...</div>
-            ) : (
-              <>
-                {activeTab === 'home' && (
-                  <HomePage 
-                    books={books} 
-                    onSelectBook={setSelectedBook}
-                    onNavigateToCatalog={() => setActiveTab('catalog')} 
-                    onNavigateToBlindDate={() => setActiveTab('blinddate')} 
-                    onCategorySelect={() => setActiveTab('catalog')} 
-                    totalUsers={0} 
-                    booksBorrowedCount={0} 
-                  />
-                )}
-
-                {activeTab === 'catalog' && (
-                  <BookCatalog 
-                    books={books} 
-                    categories={categories}
-                    searchTerm="" 
-                    onSearchChange={() => {}} 
-                    selectedCategory="" 
-                    onCategoryChange={() => {}} 
-                    selectedStatus="all" 
-                    onStatusChange={() => {}} 
-                    onSelectBook={setSelectedBook} 
-                  />
-                )}
-
-                {activeTab === 'wallet' && (
-                  <Wallet 
-                    balance={currentUser.walletBalance} 
-                    currentUsername={currentUser.username}
-                    transactions={[]} // Transaction servisi yazılınca burası dolacak
-                    onAddFunds={() => toast.info("Para yükleme servisi henüz bağlanmadı.")} 
-                  />
-                )}
-
-                {activeTab === 'account' && (
-                   <AccountManagement 
-                     username={currentUser.username}
-                     email={currentUser.email}
-                     role={currentUser.role}
-                     phone={currentUser.phone}
-                     address={currentUser.address}
-                     penaltyCount={currentUser.penaltyCount}
-                     userRole={currentUser.role} // Prop ismi farklı olabilir, kontrol et
-                     onUpdateProfile={() => toast.info("Güncelleme servisi eklenecek.")}
-                   />
-                )}
-              </>
-            )}
-          </main>
-        </div>
-
-        {/* Modal */}
-        {selectedBook && (
-          <BookDetailModal
-            book={selectedBook}
-            onClose={() => setSelectedBook(null)}
-            userRole={currentUser.role}
-            currentUsername={currentUser.username}
-            hasActiveBorrow={false} // RentalService'den gelecek
-            currentUserBadge={currentUser.badge}
-            onBorrow={() => toast.info("Kiralama servisi eklenecek")}
-            onPurchase={() => toast.info("Satın alma servisi eklenecek")}
-            onAddComment={() => {}}
-            onDeleteComment={() => {}}
-            onEditBook={() => {}}
-          />
         )}
-      </div>
-    </>
+      </>
   );
 }

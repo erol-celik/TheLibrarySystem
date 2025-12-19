@@ -11,13 +11,15 @@ export const UserService = {
             id: String(data.id),
             username: data.name,
             email: data.email,
-            role: data.role ? data.role.replace('ROLE_', '').toLowerCase() : 'user',
+            role: (data.roles && data.roles.length > 0)
+                ? data.roles[0].replace('ROLE_', '').toLowerCase()
+                : 'user',
             status: data.isBanned ? 'blocked' : 'active',
             walletBalance: data.balance || 0,
             penaltyCount: data.penaltyScore || 0,
             phone: data.phone || '',
             address: data.address || '',
-            profilePicture: '',
+            profilePicture:data.avatarUrl || '',
             badge: 'Member',
             createdDate: new Date().toISOString()
         };

@@ -16,6 +16,13 @@ export const AuthService = {
     // REGISTER
     register: async (userData: any) => {
         const response = await api.post('/auth/register', userData);
+
+        // Eğer backend başarılı kayıt sonrası otomatik token dönüyorsa (AuthResponse.java gibi)
+        if (response.data.token) {
+            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+        }
+
         return response.data;
     },
 

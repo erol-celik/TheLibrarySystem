@@ -11,7 +11,7 @@ export const BookService = {
             title: b.title,
             author: b.author,
             bookType: b.bookType || 'PHYSICAL',
-            categoryName: b.categoryName ? [b.categoryName] : [],
+            categoryName: b.categories ? [b.categories] : [],
             tags: b.tags ? b.tags : [],
             description: b.description || '',
             isbnNo: b.isbnNo || '',
