@@ -71,7 +71,7 @@ public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificat
 
 
     // DÜZELTME 2: b.category yerine JOIN c (categories) üzerinden filtreleme yapıldı
-    @Query("SELECT b FROM Book b LEFT JOIN b.categories c WHERE " +
+    @Query("SELECT DISTINCT b FROM Book b LEFT JOIN b.categories c WHERE " +
             "(:keyword IS NULL OR (" +
             "   LOWER(b.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "   LOWER(b.author) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
@@ -79,8 +79,11 @@ public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificat
             ")) " +
             "AND " +
             "(:category IS NULL OR c.name = :category) " +
-            "AND " +
-            "(:available IS NULL OR :available = false OR b.availableStock > 0)")
+            "AND (" +
+            "   :available IS NULL OR " +
+            "   (:available = true AND b.availableStock > 0) OR " +
+            "   (:available = false AND b.availableStock = 0)" +
+            ")")
     Page<Book> searchBooks(
             @Param("keyword") String keyword,
             @Param("category") String category,

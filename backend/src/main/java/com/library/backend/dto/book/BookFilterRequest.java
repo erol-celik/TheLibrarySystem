@@ -12,7 +12,7 @@ public class BookFilterRequest {
 
     // Sayfalama ve Sıralama
     private Integer page = 0;
-    private Integer size = 10;
+    private Integer size = 15;
     private String sortBy = "title"; // Varsayılan sıralama: Başlık
     private String direction = "asc";
 }

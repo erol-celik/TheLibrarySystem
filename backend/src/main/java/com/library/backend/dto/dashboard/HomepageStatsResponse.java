@@ -10,4 +10,7 @@ public class HomepageStatsResponse {
     private long totalBooks; // Toplam Kitap Sayısı
     private long totalDigitalBooks; // Dijital Arşiv Büyüklüğü
     private Map<String, Long> categoryDistribution; // { "Bilim Kurgu": 120, "Dram": 50 }
+    private long totalUsers;
+    private long activeRentals;
+
 }

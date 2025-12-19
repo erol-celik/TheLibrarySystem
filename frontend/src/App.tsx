@@ -16,6 +16,7 @@ import { AuthService } from './services/AuthService';
 import { BookService } from './services/BookService';
 import { UserService } from './services/UserService';
 import { Book, UserAccount } from './types';
+import {DashboardService} from "./services/DashboardService";
 
 export default function App() {
   // --- STATE (Hafıza Alanları) ---
@@ -29,7 +30,10 @@ export default function App() {
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
-
+  const [stats, setStats] = useState({ totalUsers: 0, borrowedCount: 0,totalBooks: 0 });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('all');
   // Seçili Kitap (Modal için)
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
 
@@ -56,19 +60,72 @@ export default function App() {
   const fetchLibraryData = async () => {
     setIsLoadingData(true);
     try {
-      const [booksData, catsData] = await Promise.all([
+      const [booksData, catsData, dashboardData] = await Promise.all([
         BookService.getAllBooks(),
-        BookService.getAllCategories()
+        BookService.getAllCategories(),
+        // Dashboard verisini çekmek için direkt api çağrısı veya DashboardService kullanın
+        DashboardService.getPublicStats()
       ]);
+
       setBooks(booksData);
       setCategories(catsData);
+
+      setStats({
+        totalUsers: dashboardData.totalUsers,
+        borrowedCount: dashboardData.activeRentals,
+        totalBooks: dashboardData.totalBooks
+      });
+
     } catch (error) {
       console.error("Veriler çekilemedi:", error);
-      toast.error("Kütüphane verileri yüklenirken bir hata oluştu.");
     } finally {
       setIsLoadingData(false);
     }
   };
+// ------ Filtreleme Fonksiyonu ------
+  const handleSearch = async () => {
+    // 1. Eğer tüm filtreler boşsa, orijinal getAllBooks metoduna dön
+    if (!searchTerm && !selectedCategory && selectedStatus === 'all') {
+      setIsLoadingData(true);
+      try {
+        const originalBooks = await BookService.getAllBooks();
+        setBooks(originalBooks);
+      } finally {
+        setIsLoadingData(false);
+      }
+      return;
+    }
+
+    // 2. Filtreler doluysa aramayı yap
+    setIsLoadingData(true);
+    try {
+      const results = await BookService.getFilteredBooks({
+        keyword: searchTerm || undefined,
+        category: selectedCategory || undefined,
+        available: selectedStatus === 'available' ? true : (selectedStatus === 'borrowed' ? false : undefined),
+        page: 0,
+        size: 15, // Catalog için daha geniş bir liste
+        sortBy: 'title',
+        direction: 'asc'
+      });
+      setBooks(Array.isArray(results) ? results : []);
+    } catch (error) {
+      console.error("Arama hatası:", error);
+      toast.error("Kitaplar aranırken bir hata oluştu.");
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      // Sadece katalog sekmesindeyken aramayı tetikle
+      if (activeTab === 'catalog') {
+        handleSearch();
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, selectedCategory, selectedStatus]);
 
   // --- AUTH İŞLEMLERİ (Giriş / Kayıt / Çıkış) ---
 
@@ -173,8 +230,9 @@ export default function App() {
                                 onNavigateToCatalog={() => setActiveTab('catalog')}
                                 onNavigateToBlindDate={() => setActiveTab('blinddate')}
                                 onCategorySelect={() => setActiveTab('catalog')}
-                                totalUsers={0}
-                                booksBorrowedCount={0}
+                                totalUsers={stats.totalUsers}
+                                booksBorrowedCount={stats.borrowedCount}
+                                totalBooksCount={stats.totalBooks}
                             />
                         )}
 
@@ -182,12 +240,12 @@ export default function App() {
                             <BookCatalog
                                 books={books}
                                 categories={categories}
-                                searchTerm=""
-                                onSearchChange={() => {}}
-                                selectedCategory=""
-                                onCategoryChange={() => {}}
-                                selectedStatus="all"
-                                onStatusChange={() => {}}
+                                searchTerm={searchTerm}
+                                onSearchChange={setSearchTerm}
+                                selectedCategory={selectedCategory}
+                                onCategoryChange={setSelectedCategory}
+                                selectedStatus={selectedStatus}
+                                onStatusChange={setSelectedStatus}
                                 onSelectBook={setSelectedBook}
                             />
                         )}
