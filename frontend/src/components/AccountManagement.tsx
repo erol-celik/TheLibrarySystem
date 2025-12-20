@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // useEffect eklendi
 import { User, Mail, Phone, MapPin, Edit2, Save, X, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner'; // Bildirimler için (eğer kullanıyorsanız)
 
 interface AccountManagementProps {
   username: string;
@@ -11,8 +12,17 @@ interface AccountManagementProps {
   onUpdateProfile?: (email: string, phone: string, address: string) => void;
 }
 
-export function AccountManagement({ username, userRole, penaltyCount, email, phone, address, onUpdateProfile }: AccountManagementProps) {
+export function AccountManagement({
+  username,
+  userRole,
+  penaltyCount,
+  email,
+  phone,
+  address,
+  onUpdateProfile
+}: AccountManagementProps) {
   const [isEditing, setIsEditing] = useState(false);
+
   const [profile, setProfile] = useState({
     fullName: username,
     email: email,
@@ -37,9 +47,11 @@ export function AccountManagement({ username, userRole, penaltyCount, email, pho
 
   return (
     <div className="space-y-6">
+
+      {/* Profil Bilgileri Kartı */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-gray-900 dark:text-white">Account Management</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Account Management</h2>
           {!isEditing ? (
             <button
               onClick={() => setIsEditing(true)}
@@ -68,6 +80,7 @@ export function AccountManagement({ username, userRole, penaltyCount, email, pho
           )}
         </div>
 
+        {/* ... Mevcut profil detayları formu aynen kalacak ... */}
         <div className="flex items-center gap-6 mb-8">
           <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
             <User className="w-12 h-12 text-white" />
@@ -80,9 +93,8 @@ export function AccountManagement({ username, userRole, penaltyCount, email, pho
                 Active
               </span>
               {penaltyCount > 0 && (
-                <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full ${
-                  penaltyCount >= 3 ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
-                }`}>
+                <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full ${penaltyCount >= 3 ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                  }`}>
                   <AlertTriangle className="w-4 h-4" />
                   {penaltyCount} Penalties
                 </span>
@@ -91,7 +103,9 @@ export function AccountManagement({ username, userRole, penaltyCount, email, pho
           </div>
         </div>
 
+        {/* Form Grid Alanı */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Full Name */}
           <div>
             <label className="flex items-center gap-2 text-gray-700 dark:text-gray-300 mb-2">
               <User className="w-4 h-4" />
@@ -102,33 +116,21 @@ export function AccountManagement({ username, userRole, penaltyCount, email, pho
                 type="text"
                 value={editedProfile.fullName}
                 onChange={(e) => setEditedProfile({ ...editedProfile, fullName: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             ) : (
               <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 px-4 py-2 rounded-lg">{profile.fullName}</p>
             )}
           </div>
-
+          {/* Email - Sadece okunur */}
           <div>
             <label className="flex items-center gap-2 text-gray-700 dark:text-gray-300 mb-2">
               <Mail className="w-4 h-4" />
               <span>Email</span>
             </label>
-            {isEditing ? (
-              <div>
-                <input
-                  type="email"
-                  value={editedProfile.email}
-                  readOnly
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 cursor-not-allowed"
-                />
-                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Email cannot be changed</p>
-              </div>
-            ) : (
-              <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 px-4 py-2 rounded-lg">{profile.email}</p>
-            )}
+            <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 px-4 py-2 rounded-lg">{profile.email}</p>
           </div>
-
+          {/* Phone */}
           <div>
             <label className="flex items-center gap-2 text-gray-700 dark:text-gray-300 mb-2">
               <Phone className="w-4 h-4" />
@@ -139,13 +141,13 @@ export function AccountManagement({ username, userRole, penaltyCount, email, pho
                 type="tel"
                 value={editedProfile.phone}
                 onChange={(e) => setEditedProfile({ ...editedProfile, phone: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             ) : (
               <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 px-4 py-2 rounded-lg">{profile.phone}</p>
             )}
           </div>
-
+          {/* Address */}
           <div>
             <label className="flex items-center gap-2 text-gray-700 dark:text-gray-300 mb-2">
               <MapPin className="w-4 h-4" />
@@ -156,7 +158,7 @@ export function AccountManagement({ username, userRole, penaltyCount, email, pho
                 type="text"
                 value={editedProfile.address}
                 onChange={(e) => setEditedProfile({ ...editedProfile, address: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             ) : (
               <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 px-4 py-2 rounded-lg">{profile.address}</p>
@@ -165,39 +167,31 @@ export function AccountManagement({ username, userRole, penaltyCount, email, pho
         </div>
       </div>
 
+      {/* İstatistikler */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
         <h3 className="text-gray-900 dark:text-white mb-4">Account Statistics</h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg p-4">
             <p className="text-gray-600 dark:text-gray-300 mb-1">Books Borrowed</p>
-            <p className="text-purple-600 dark:text-purple-400">24 Books</p>
+            <p className="text-purple-600 dark:text-purple-400 font-bold">24 Books</p>
           </div>
           <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4">
             <p className="text-gray-600 dark:text-gray-300 mb-1">Active Loans</p>
-            <p className="text-blue-600 dark:text-blue-400">3 Books</p>
+            <p className="text-blue-600 dark:text-blue-400 font-bold">3 Books</p>
           </div>
           <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-4">
             <p className="text-gray-600 dark:text-gray-300 mb-1">Member Since</p>
-            <p className="text-green-600 dark:text-green-400">Jan 2024</p>
+            <p className="text-green-600 dark:text-green-400 font-bold">Jan 2024</p>
           </div>
-          <div className={`rounded-lg p-4 ${
-            penaltyCount >= 3 ? 'bg-red-50 dark:bg-red-900/30' : penaltyCount > 0 ? 'bg-yellow-50 dark:bg-yellow-900/30' : 'bg-gray-50 dark:bg-gray-700'
-          }`}>
-            <p className="text-gray-600 dark:text-gray-300 mb-1">Penalty Points</p>
-            <p className={`${
-              penaltyCount >= 3 ? 'text-red-600 dark:text-red-400' : penaltyCount > 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-600 dark:text-gray-400'
+          <div className={`rounded-lg p-4 ${penaltyCount >= 3 ? 'bg-red-50 dark:bg-red-900/30' : penaltyCount > 0 ? 'bg-yellow-50 dark:bg-yellow-900/30' : 'bg-gray-50 dark:bg-gray-700'
             }`}>
+            <p className="text-gray-600 dark:text-gray-300 mb-1">Penalty Points</p>
+            <p className={`font-bold ${penaltyCount >= 3 ? 'text-red-600 dark:text-red-400' : penaltyCount > 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-600 dark:text-gray-400'
+              }`}>
               {penaltyCount} / 4
             </p>
           </div>
         </div>
-        {penaltyCount >= 3 && (
-          <div className="mt-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <p className="text-red-800 dark:text-red-300">
-              <strong>Warning:</strong> You have {penaltyCount} penalty points. One more late return will result in an automatic ban!
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

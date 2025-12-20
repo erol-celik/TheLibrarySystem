@@ -1,18 +1,6 @@
-import { Search, Library, Star, Filter, SlidersHorizontal, Grid3x3, LayoutGrid, List } from 'lucide-react';
+import { Search, Library, Star, Filter, SlidersHorizontal, Grid3x3, LayoutGrid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
-
-interface Book {
-  id: string;
-  title: string;
-  author: string;
-  categoryName: string[];
-  price: number;
-  pageCount: number;
-  publicationYear: number;
-  coverUrl: string;
-  isBorrowed: boolean;
-  comments: any[];
-}
+import { Book } from '../types';
 
 interface BookCatalogProps {
   books: Book[];
@@ -24,6 +12,10 @@ interface BookCatalogProps {
   selectedStatus: string;
   onStatusChange: (value: string) => void;
   onSelectBook: (book: Book) => void;
+  // Pagination Props
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
 export function BookCatalog({
@@ -36,6 +28,9 @@ export function BookCatalog({
   selectedStatus,
   onStatusChange,
   onSelectBook,
+  currentPage,
+  totalPages,
+  onPageChange
 }: BookCatalogProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('title');
@@ -146,22 +141,20 @@ export function BookCatalog({
               <div className="flex gap-2">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all ${
-                    viewMode === 'grid'
-                      ? 'bg-purple-600 text-white shadow-lg'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all ${viewMode === 'grid'
+                    ? 'bg-purple-600 text-white shadow-lg'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
                 >
                   <Grid3x3 className="w-4 h-4" />
                   Grid
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all ${
-                    viewMode === 'list'
-                      ? 'bg-purple-600 text-white shadow-lg'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all ${viewMode === 'list'
+                    ? 'bg-purple-600 text-white shadow-lg'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
                 >
                   <List className="w-4 h-4" />
                   List
@@ -249,7 +242,7 @@ export function BookCatalog({
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  
+
                   {/* Price Tag */}
                   <div className="absolute top-4 right-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-full shadow-lg">
                     ${book.price.toFixed(2)}
@@ -369,11 +362,10 @@ export function BookCatalog({
                         {book.pageCount} pages
                       </span>
                       <span>Published {book.publicationYear}</span>
-                      <span className={`px-3 py-1 rounded-full text-xs ${
-                        book.isBorrowed
-                          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                          : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                      }`}>
+                      <span className={`px-3 py-1 rounded-full text-xs ${book.isBorrowed
+                        ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                        : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                        }`}>
                         {book.isBorrowed ? 'Borrowed' : 'Available'}
                       </span>
                     </div>
@@ -384,6 +376,39 @@ export function BookCatalog({
           })}
         </div>
       )}
+
+      {/* Pagination Bar */}
+      <div className="flex items-center justify-center gap-4 mt-8 pb-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 0 || totalPages === 0}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${currentPage === 0 || totalPages === 0
+              ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 shadow-sm'
+            }`}
+        >
+          <ChevronLeft className="w-5 h-5" />
+          <span>Previous</span>
+        </button>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-sm">
+            Page <span className="font-bold text-purple-600 dark:text-purple-400">{totalPages === 0 ? 0 : currentPage + 1}</span> of <span className="font-bold text-gray-900 dark:text-white">{totalPages}</span>
+          </span>
+        </div>
+
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage >= totalPages - 1 || totalPages === 0}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${currentPage >= totalPages - 1 || totalPages === 0
+              ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 shadow-sm'
+            }`}
+        >
+          <span>Next</span>
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
     </div>
   );
 }

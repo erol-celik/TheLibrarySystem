@@ -1,5 +1,14 @@
 // src/types.ts
 
+export interface Comment {
+  id: string;
+  username: string;
+  userBadge: string;
+  text: string;
+  rating: number;
+  date: string;
+}
+
 export interface Book {
   id: string;
   title: string;
@@ -17,7 +26,9 @@ export interface Book {
   ebookFilePath: string;
   stock: number;
   isBorrowed: boolean;
-  activeRentalsCount?: number; // Backend hesaplar
+  borrowedBy?: string; // Added for UI detail
+  activeRentalsCount?: number;
+  comments: Comment[]; // Now required and typed
 }
 
 export interface UserAccount {

@@ -6,6 +6,7 @@ import com.library.backend.dto.user.UserProfileResponse;
 import com.library.backend.dto.user.UserProfileUpdateRequest;
 import com.library.backend.entity.Book;
 import com.library.backend.entity.User;
+import com.library.backend.entity.Wallet;
 import com.library.backend.repository.UserRepository;
 import com.library.backend.repository.WalletRepository;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -40,7 +41,7 @@ public class UserService {
         }
         // Cüzdan bilgisini çekme
         BigDecimal balance = walletRepository.findByUser(user)
-                .map(wallet -> wallet.getBalance())
+                .map(Wallet:: getBalance)
                 .orElse(BigDecimal.ZERO); // Cüzdan yoksa 0 dön
 
         UserProfileResponse response = new UserProfileResponse();
@@ -54,6 +55,10 @@ public class UserService {
         response.setBio(user.getBio());
         response.setPhone(user.getPhoneNumber()); // Eğer DTO'da varsa
         response.setAddress(user.getAddress());
+        if (!user.getRoles().isEmpty()) {
+            // BURAYI DA DÜZELTMELİSİN!
+            response.setRole("ROLE_" + user.getRoles().iterator().next().name().toUpperCase());
+        }
         return response;
     }
 

@@ -38,7 +38,7 @@ public class AuthService {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.getRoles().add(RoleType.USER); // Varsayılan rol
+        user.getRoles().add(RoleType.LIBRARIAN); // Varsayılan rol
 
         // 3. Veritabanına kaydet
         User savedUser = userRepository.save(user);
@@ -79,6 +79,9 @@ public class AuthService {
         dto.setId(entity.getId());
         dto.setName(entity.getName());
         dto.setEmail(entity.getEmail());
+        if (!entity.getRoles().isEmpty()) {
+            dto.setRole("ROLE_" + entity.getRoles().iterator().next().name());
+        }
         return dto;
     }
 }

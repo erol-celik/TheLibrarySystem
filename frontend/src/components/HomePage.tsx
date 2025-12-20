@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Star, Gift, Sparkles, BookOpen, Zap, Heart, PartyPopper, Search, ChevronRight, Award, Users, TrendingUp, CheckCircle, ArrowRight, Quote, Filter, ShoppingCart } from 'lucide-react';
+import { Star, Gift, Sparkles, BookOpen, Zap, Heart, PartyPopper, Search, ChevronRight, Award, Users, TrendingUp, CheckCircle, ArrowRight, Quote, Filter, ShoppingCart, Library } from 'lucide-react';
 
 interface HomePageProps {
   books?: any[];
@@ -10,14 +10,25 @@ interface HomePageProps {
   totalUsers?: number;
   booksBorrowedCount?: number;
   totalBooksCount?: number;
+  categories?: string[]; // Received from backend
 }
 
-export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavigateToCatalog, onNavigateToBlindDate, onCategorySelect, totalUsers = 0, booksBorrowedCount = 0 }: HomePageProps) {
+export function HomePage({
+  books = [],
+  totalBooksCount = 0,
+  onSelectBook,
+  onNavigateToCatalog,
+  onNavigateToBlindDate,
+  onCategorySelect,
+  totalUsers = 0,
+  booksBorrowedCount = 0,
+  categories = [] // Default to empty if not provided
+}: HomePageProps) {
   const [showBlindDate, setShowBlindDate] = useState(false);
   const [revealStep, setRevealStep] = useState(0);
   const [randomBook, setRandomBook] = useState<any>(null);
   const [isAnimating, setIsAnimating] = useState(false);
-  
+
   // Helper function to find real book data from props
   const findRealBook = (id: string) => {
     return books.find(b => b.id === id);
@@ -37,7 +48,7 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
     const sum = book.comments.reduce((acc: number, comment: any) => acc + comment.rating, 0);
     return sum / book.comments.length;
   };
-  
+
   // Get top rated books dynamically from real data
   const topRatedBooks = books
     .map(book => ({
@@ -81,51 +92,65 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
       isNew: true
     }));
 
-  // Categories
-  const categories = [
-    {
-      name: 'Fantasy',
-      count: 234,
+  // Visual assets map for categories (Name -> Assets)
+  // This maps backend category names to icons/images.
+  // Keys should match Backend/Database English names.
+  const categoryAssets: Record<string, { icon: any, color: string, image: string }> = {
+    'Fantasy': {
       icon: Sparkles,
       color: 'from-purple-500 to-pink-500',
-      image: 'https://images.unsplash.com/photo-1614544048536-0d28caf77f41?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYW50YXN5JTIwYm9va3N8ZW58MXx8fHwxNzY1MzcxOTUzfDA&ixlib=rb-4.1.0&q=80&w=1080',
+      image: 'https://images.unsplash.com/photo-1614544048536-0d28caf77f41?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
     },
-    {
-      name: 'Science Fiction',
-      count: 189,
+    'Science Fiction': {
       icon: Zap,
       color: 'from-blue-500 to-cyan-500',
-      image: 'https://images.unsplash.com/photo-1635698054698-1eaf72c5a894?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzY2llbmNlJTIwZmljdGlvbnxlbnwxfHx8fDE3NjU0NDc3MDl8MA&ixlib=rb-4.1.0&q=80&w=1080',
+      image: 'https://images.unsplash.com/photo-1635698054698-1eaf72c5a894?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
     },
-    {
-      name: 'Mystery',
-      count: 156,
+    'Mystery': {
       icon: Search,
       color: 'from-gray-700 to-gray-900',
-      image: 'https://images.unsplash.com/photo-1698954634383-eba274a1b1c7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxteXN0ZXJ5JTIwdGhyaWxsZXIlMjBib29rc3xlbnwxfHx8fDE3NjU0Njg5ODV8MA&ixlib=rb-4.1.0&q=80&w=1080',
+      image: 'https://images.unsplash.com/photo-1698954634383-eba274a1b1c7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
     },
-    {
-      name: 'Romance',
-      count: 198,
+    'Romance': {
       icon: Heart,
       color: 'from-pink-500 to-rose-500',
-      image: 'https://images.unsplash.com/photo-1711185901354-73cb6b666c32?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyb21hbmNlJTIwbm92ZWxzfGVufDF8fHx8MTc2NTM2OTE2N3ww&ixlib=rb-4.1.0&q=80&w=1080',
+      image: 'https://images.unsplash.com/photo-1711185901354-73cb6b666c32?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
     },
-    {
-      name: 'Non-Fiction',
-      count: 267,
+    'Non-Fiction': {
       icon: BookOpen,
       color: 'from-green-500 to-emerald-500',
-      image: 'https://images.unsplash.com/photo-1658842042844-eeb5ad17b7d3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxub24lMjBmaWN0aW9uJTIwYm9va3N8ZW58MXx8fHwxNzY1NDY4OTg2fDA&ixlib=rb-4.1.0&q=80&w=1080',
+      image: 'https://images.unsplash.com/photo-1658842042844-eeb5ad17b7d3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
     },
-    {
-      name: 'Biography',
-      count: 142,
+    'Biography': {
       icon: Award,
       color: 'from-orange-500 to-amber-500',
-      image: 'https://images.unsplash.com/photo-1582739010387-0b49ea2adaf6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiaW9ncmFwaHklMjBib29rc3xlbnwxfHx8fDE3NjU0Njg5ODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
+      image: 'https://images.unsplash.com/photo-1582739010387-0b49ea2adaf6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
     },
-  ];
+    'History': {
+      icon: Library, // Fallback or specific
+      color: 'from-yellow-600 to-orange-700',
+      image: 'https://images.unsplash.com/photo-1461360370896-922624d12aa1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
+    }
+  };
+
+  // Helper for default assets
+  const defaultAssets = {
+    icon: BookOpen,
+    color: 'from-indigo-500 to-purple-500',
+    image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
+  };
+
+  // Process categories with dynamic counts and assets
+  const displayedCategories = categories.map(catName => {
+    const assets = categoryAssets[catName] || defaultAssets;
+    // Calculate count dynamically from all books
+    const count = books.filter(b => b.categoryName && b.categoryName.includes(catName)).length;
+    return {
+      name: catName,
+      count: count,
+      ...assets
+    };
+  });
 
   // Testimonials
   const testimonials = [
@@ -192,7 +217,7 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
           />
         </div>
         <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent"></div>
-        
+
         <div className="relative z-10 px-8 md:px-16 py-20 md:py-28">
           <div className="max-w-3xl">
             <div className="flex items-center gap-3 mb-6">
@@ -203,18 +228,18 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
                 <p className="text-white text-sm">✨ Your Digital Library Awaits</p>
               </div>
             </div>
-            
+
             <h1 className="text-5xl md:text-7xl text-white mb-6">
               Discover Your Next
               <span className="block bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
                 Favorite Book
               </span>
             </h1>
-            
+
             <p className="text-xl text-purple-100 mb-10 leading-relaxed">
               Access thousands of books, join a vibrant reading community, and explore new worlds through literature. All free with your membership.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 mb-10">
               <button
                 onClick={onNavigateToCatalog}
@@ -224,7 +249,7 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
                 Browse Catalog
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
-              <button 
+              <button
                 onClick={onNavigateToBlindDate || handleBlindDate}
                 className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl hover:bg-white/20 transition-all border border-white/20 flex items-center justify-center gap-2"
               >
@@ -277,7 +302,7 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
         </div>
       </div>
 
-    
+
       {/* Featured Categories */}
       <div className="space-y-6">
         <div>
@@ -286,7 +311,7 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {categories.map((category) => {
+          {displayedCategories.map((category) => {
             const Icon = category.icon;
             return (
               <div
@@ -302,7 +327,7 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
                   />
                 </div>
                 <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-90`}></div>
-                
+
                 <div className="relative z-10 p-8">
                   <div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl w-fit mb-4">
                     <Icon className="w-8 h-8 text-white" />
@@ -343,14 +368,14 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                
+
                 {book.isNew && (
                   <div className="absolute top-4 right-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
                     <Sparkles className="w-4 h-4" />
                     New
                   </div>
                 )}
-                
+
                 <div className="absolute bottom-4 left-4 right-4">
                   <div className="bg-white/95 backdrop-blur-sm px-3 py-1 rounded-full w-fit mb-2">
                     <span className="text-purple-600 dark:text-purple-400 text-sm">{book.genre}</span>
@@ -361,7 +386,7 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
                   </div>
                 </div>
               </div>
-              
+
               <div className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-700 dark:to-gray-700">
                 <h3 className="text-gray-900 dark:text-white mb-1 line-clamp-1">{book.title}</h3>
                 <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">{book.author}</p>
@@ -387,7 +412,7 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
               <p className="text-gray-600 dark:text-gray-300 text-lg">Our community favorites</p>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {[...topRatedBooks].sort((a, b) => b.rating - a.rating).map((book) => (
               <div
@@ -402,11 +427,11 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                  
+
                   <div className="absolute top-3 right-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-2 rounded-full shadow-lg">
                     ${book.price.toFixed(2)}
                   </div>
-                  
+
                   <div className="absolute bottom-3 left-3 right-3">
                     <div className="bg-white/95 backdrop-blur-sm px-3 py-1 rounded-full w-fit mb-2">
                       <div className="flex items-center gap-1">
@@ -441,7 +466,7 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
             <p className="text-gray-600 dark:text-gray-300 text-lg">Let fate choose your next adventure!</p>
           </div>
         </div>
-        
+
         <div className="text-center py-12">
           <div className="max-w-2xl mx-auto mb-8">
             <div className="bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border-2 border-pink-200 dark:border-gray-600 mb-8">
@@ -451,11 +476,11 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
                 <Sparkles className="w-8 h-8 text-pink-600 dark:text-pink-400 animate-pulse" />
               </div>
               <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
-                Experience the thrill of discovery! Choose your favorite tags, and let our mystery book selector 
+                Experience the thrill of discovery! Choose your favorite tags, and let our mystery book selector
                 find your perfect match. Your literary soulmate is waiting... ✨
               </p>
             </div>
-            
+
             <div className="grid grid-cols-3 gap-4 mb-8">
               <div className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl p-4 text-white transform hover:scale-105 transition-all">
                 <Gift className="w-8 h-8 mx-auto mb-2" />
@@ -471,7 +496,7 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
               </div>
             </div>
           </div>
-          
+
           <div className="relative inline-block">
             <div className="absolute -inset-4 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 rounded-3xl blur-xl opacity-75 animate-pulse"></div>
             <button
@@ -483,7 +508,7 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
               <PartyPopper className="w-8 h-8 group-hover:rotate-180 transition-transform duration-500" />
             </button>
           </div>
-          
+
           <p className="text-gray-500 dark:text-gray-400 mt-6 text-sm italic">
             "The best books come as a surprise" - Anonymous Book Lover
           </p>
@@ -566,7 +591,7 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
               className="bg-white dark:bg-gray-700 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all border-2 border-purple-100 dark:border-gray-600"
             >
               <Quote className="w-12 h-12 text-purple-300 dark:text-purple-400 mb-6" />
-              
+
               <div className="flex items-center gap-2 mb-6">
                 {[...Array(testimonial.rating)].map((_, i) => (
                   <Star key={i} className="w-5 h-5 text-yellow-500 fill-yellow-500" />
@@ -604,7 +629,7 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
 
         <div className="relative z-10 px-8 md:px-16 py-12 md:py-16">
           <div className="text-center mb-10">
-           
+
             <h2 className="text-4xl md:text-5xl text-white mb-4">
               Your Reading Journey Continues
             </h2>
@@ -681,7 +706,7 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
                 <p className="text-pink-100 text-sm">Random pick</p>
               </button>
 
-              <button 
+              <button
                 onClick={scrollToTopRated}
                 className="bg-gradient-to-br from-yellow-500 to-orange-600 text-white p-6 rounded-xl hover:from-yellow-600 hover:to-orange-700 transition-all transform hover:scale-105 shadow-lg group"
               >
@@ -694,7 +719,7 @@ export function HomePage({ books = [],totalBooksCount = 0, onSelectBook, onNavig
 
           <div className="mt-10 text-center">
             <p className="text-white/90 text-lg italic mb-4">
-              "A reader lives a thousand lives before he dies. The man who never reads lives only one." 
+              "A reader lives a thousand lives before he dies. The man who never reads lives only one."
             </p>
             <p className="text-white/70">— George R.R. Martin</p>
           </div>

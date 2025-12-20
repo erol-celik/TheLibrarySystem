@@ -5,5 +5,6 @@ public enum TransactionType {
     PURCHASE,
     PENALTY_PAYMENT,
     DONATION,
+    DEPOSIT
     //aklımıza gelirse eklenebilir
 }
