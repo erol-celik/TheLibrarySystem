@@ -22,7 +22,7 @@ interface BorrowRequest {
   bookTitle: string;
   username: string;
   requestDate: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'RETURNED'; // Aligned with Backend Enums
 }
 
 interface DonationRequest {
@@ -104,7 +104,8 @@ export function LibrarianPanel({
     stock: '1',
   });
 
-  const pendingBorrows = borrowRequests.filter(r => r.status === 'pending');
+  // Filter by Backend Status 'REQUESTED'
+  const pendingBorrows = borrowRequests.filter(r => r.status === 'REQUESTED');
   const pendingDonations = donationRequests.filter(r => r.status === 'pending');
 
   const handleEditDonation = (donationId: string) => {
@@ -149,9 +150,9 @@ export function LibrarianPanel({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" >
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      < div className="grid grid-cols-1 md:grid-cols-2 gap-6" >
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
           <div className="flex items-center gap-4">
             <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-lg">
@@ -174,18 +175,17 @@ export function LibrarianPanel({
             </div>
           </div>
         </div>
-      </div>
+      </div >
 
       {/* Tabs */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+      < div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden" >
         <div className="flex border-b border-gray-200 dark:border-gray-700">
           <button
             onClick={() => setActiveTab('borrow')}
-            className={`flex-1 px-6 py-4 text-center transition-colors ${
-              activeTab === 'borrow'
-                ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
+            className={`flex-1 px-6 py-4 text-center transition-colors ${activeTab === 'borrow'
+              ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
           >
             <div className="flex items-center justify-center gap-2">
               <BookOpen className="w-5 h-5" />
@@ -194,11 +194,10 @@ export function LibrarianPanel({
           </button>
           <button
             onClick={() => setActiveTab('donation')}
-            className={`flex-1 px-6 py-4 text-center transition-colors ${
-              activeTab === 'donation'
-                ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
+            className={`flex-1 px-6 py-4 text-center transition-colors ${activeTab === 'donation'
+              ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
           >
             <div className="flex items-center justify-center gap-2">
               <Gift className="w-5 h-5" />
@@ -284,12 +283,12 @@ export function LibrarianPanel({
                       </div>
                     </div>
                     <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">{request.description}</p>
-                    
+
                     {editingDonation === request.id ? (
                       <div className="space-y-4 mb-4">
                         <div className="bg-white dark:bg-gray-600 p-4 rounded-lg space-y-3">
                           <h4 className="text-gray-900 dark:text-white mb-4">Complete Book Details</h4>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Book Type */}
                             <div>
@@ -519,7 +518,7 @@ export function LibrarianPanel({
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

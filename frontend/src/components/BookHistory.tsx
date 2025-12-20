@@ -1,87 +1,121 @@
-import { BookOpen, Calendar, CheckCircle, ShoppingBag, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BookOpen, Calendar, CheckCircle, Clock, AlertCircle, XCircle } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { RentalService } from '../services/RentalService';
 
-interface BookHistoryItem {
-  id: string;
+interface RentalHistoryItem {
+  id: number;
   bookTitle: string;
   bookAuthor: string;
-  coverUrl: string;
-  borrowDate?: string;
-  returnDate?: string;
-  purchaseDate?: string;
-  status: 'returned' | 'purchased' | 'active';
-  price?: number;
-  username?: string;
+  bookImage: string;
+  rentDate: string;
+  returnDate: string | null;
+  status: 'REQUESTED' | 'APPROVED' | 'RENTED' | 'RETURNED' | 'LATE' | 'REJECTED';
+  penaltyFee: number;
 }
 
-interface BookHistoryProps {
-  history: BookHistoryItem[];
-  currentUsername?: string;
-}
+export function BookHistory() {
+  const [history, setHistory] = useState<RentalHistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export function BookHistory({ history, currentUsername }: BookHistoryProps) {
-  // Filter history by current user
-  const filteredHistory = currentUsername 
-    ? history.filter(item => item.username === currentUsername)
-    : history;
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const loadHistory = async () => {
+    try {
+      const data = await RentalService.getUserRentals();
+      setHistory(data);
+    } catch (error) {
+      console.error("Geçmiş yüklenirken hata:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'RETURNED':
+        return (
+          <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
+            <CheckCircle className="w-4 h-4" />
+            Returned
+          </span>
+        );
+      case 'RENTED':
+      case 'APPROVED':
+      case 'LATE':
+        return (
+          <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full">
+            <Clock className="w-4 h-4" />
+            Active
+          </span>
+        );
+      case 'REQUESTED':
+        return (
+          <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full">
+            <Clock className="w-4 h-4" />
+            Requested
+          </span>
+        );
+      case 'REJECTED':
+        return (
+          <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full">
+            <XCircle className="w-4 h-4" />
+            Rejected
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
+  if (loading) {
+    return <div className="p-8 text-center text-gray-500">Loading history...</div>;
+  }
 
   return (
     <div className="space-y-6">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
         <h3 className="text-gray-900 dark:text-white mb-6">Your Book History</h3>
-        
-        {filteredHistory.length === 0 ? (
+
+        {history.length === 0 ? (
           <div className="text-center py-12">
             <BookOpen className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400">No book history yet</p>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">No book history yet.</p>
+            <p className="text-sm text-purple-600 cursor-pointer hover:underline">
+              Explore our library to rent your first book!
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredHistory.map((item) => (
+            {history.map((item) => (
               <div
                 key={item.id}
                 className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
               >
                 <ImageWithFallback
-                  src={item.coverUrl}
+                  src={item.bookImage}
                   alt={item.bookTitle}
                   className="w-16 h-24 object-cover rounded"
                 />
-                
+
                 <div className="flex-1">
                   <h4 className="text-gray-900 dark:text-white mb-1">{item.bookTitle}</h4>
-                  <p className="text-gray-600 dark:text-gray-300 mb-2">{item.bookAuthor}</p>
+                  <p className="text-gray-600 dark:text-gray-300 mb-2">{item.bookAuthor || 'Unknown Author'}</p>
+
                   <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-2">
                     <Calendar className="w-4 h-4" />
-                    {item.status === 'purchased' && item.purchaseDate && (
-                      <span>Purchased: {item.purchaseDate}</span>
-                    )}
-                    {item.status === 'returned' && item.borrowDate && item.returnDate && (
-                      <span>Borrowed: {item.borrowDate} - Returned: {item.returnDate}</span>
-                    )}
-                    {item.status === 'active' && item.borrowDate && (
-                      <span>Borrowed: {item.borrowDate} (Active)</span>
+                    <span>Rent Date: {item.rentDate}</span>
+                    {item.returnDate && (
+                      <>
+                        <span className="mx-1">-</span>
+                        <span>Returned: {item.returnDate}</span>
+                      </>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    {item.status === 'returned' && (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
-                        <CheckCircle className="w-4 h-4" />
-                        Returned
-                      </span>
-                    )}
-                    {item.status === 'purchased' && (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full">
-                        <ShoppingBag className="w-4 h-4" />
-                        Purchased ${item.price?.toFixed(2)}
-                      </span>
-                    )}
-                    {item.status === 'active' && (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full">
-                        <Clock className="w-4 h-4" />
-                        Currently Borrowed
-                      </span>
-                    )}
+                    {getStatusBadge(item.status)}
                   </div>
                 </div>
               </div>

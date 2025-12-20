@@ -46,4 +46,17 @@ public class NotificationController {
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(notificationService.getUnreadCount(userEmail));
     }
+
+    // Bildirimi sil
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_USER') or hasAuthority('ROLE_LIBRARIAN') or hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<?> deleteNotification(@PathVariable Long id) {
+        String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        try {
+            notificationService.deleteNotification(id, userEmail);
+            return ResponseEntity.ok("Notification deleted successfully.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }
