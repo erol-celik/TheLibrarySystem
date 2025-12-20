@@ -38,9 +38,9 @@ public class WalletService {
         // Bakiyeyi artır
         wallet.setBalance(wallet.getBalance().add(amount));
         walletRepository.save(wallet);
-
+        userRepository.save(user);
         // Log at (Dekont)
-        saveTransaction(wallet, TransactionType.PURCHASE, amount, null); // PURCHASE yerine DEPOSIT olmalıydı ama enum'da yoksa PURCHASE kullanıyorum şimdilik.
+        saveTransaction(wallet, TransactionType.DEPOSIT, amount, null);
 
         return wallet.getBalance();
     }
@@ -86,5 +86,16 @@ public class WalletService {
         return walletRepository.findByUser(user)
                 .map(Wallet::getBalance)
                 .orElse(BigDecimal.ZERO);
+    }
+
+    // 4. Kullanıcının işlem geçmişini getir
+    public List<WalletTransaction> getTransactions(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı."));
+
+        Wallet wallet = walletRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Cüzdan bulunamadı."));
+
+        return transactionRepository.findByWalletIdOrderByCreatedDateDesc(wallet.getId());
     }
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, ShoppingCart, BookOpen, Calendar, User as UserIcon, Building, Star, Send, Trash2 } from 'lucide-react';
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,32 +12,7 @@ import {
   AlertDialogTitle,
 } from "./ui/alert-dialog";
 
-interface Comment {
-  id: string;
-  username: string;
-  userBadge: string;
-  text: string;
-  rating: number;
-  date: string;
-}
-
-interface Book {
-  id: string;
-  title: string;
-  author: string;
-  bookType: string;
-  categoryName: string[];
-  description: string;
-  isbnNo: string;
-  pageCount: number;
-  price: number;
-  publicationYear: number;
-  publisher: string;
-  coverUrl: string;
-  isBorrowed: boolean;
-  borrowedBy?: string;
-  comments: Comment[];
-}
+import { Book, Comment } from '../types';
 
 interface BookDetailModalProps {
   book: Book;
@@ -53,12 +28,12 @@ interface BookDetailModalProps {
   onEditBook?: (id: string, book: any) => void;
 }
 
-export function BookDetailModal({ 
-  book, 
-  onClose, 
-  onBorrow, 
-  onPurchase, 
-  userRole, 
+export function BookDetailModal({
+  book,
+  onClose,
+  onBorrow,
+  onPurchase,
+  userRole,
   hasActiveBorrow,
   currentUsername,
   currentUserBadge,
@@ -102,7 +77,7 @@ export function BookDetailModal({
     setRating(5);
   };
 
-  const averageRating = book.comments.length > 0 
+  const averageRating = book.comments.length > 0
     ? (book.comments.reduce((sum, c) => sum + c.rating, 0) / book.comments.length).toFixed(1)
     : 'N/A';
 
@@ -226,11 +201,10 @@ export function BookDetailModal({
                     <button
                       onClick={onBorrow}
                       disabled={hasActiveBorrow}
-                      className={`py-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${
-                        hasActiveBorrow
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
-                      }`}
+                      className={`py-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${hasActiveBorrow
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
                     >
                       <BookOpen className="w-5 h-5" />
                       <span>Borrow</span>
@@ -253,7 +227,7 @@ export function BookDetailModal({
           {/* Comments Section */}
           <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
             <h3 className="text-gray-900 dark:text-white mb-4">Reviews & Comments</h3>
-            
+
             {/* Add Comment Form (only for users) */}
             {userRole === 'user' && currentUsername && onAddComment && (
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
@@ -267,11 +241,10 @@ export function BookDetailModal({
                         className="transition-colors"
                       >
                         <Star
-                          className={`w-5 h-5 ${
-                            star <= rating
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'text-gray-300'
-                          }`}
+                          className={`w-5 h-5 ${star <= rating
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300'
+                            }`}
                         />
                       </button>
                     ))}
@@ -316,11 +289,10 @@ export function BookDetailModal({
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
-                              className={`w-4 h-4 ${
-                                i < comment.rating
-                                  ? 'fill-yellow-400 text-yellow-400'
-                                  : 'text-gray-300'
-                              }`}
+                              className={`w-4 h-4 ${i < comment.rating
+                                ? 'fill-yellow-400 text-yellow-400'
+                                : 'text-gray-300'
+                                }`}
                             />
                           ))}
                         </div>

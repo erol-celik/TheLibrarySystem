@@ -19,6 +19,7 @@ public class UserProfileResponse {
     String bio;
     String address;
     String phone;
+    private String role;
 
 
 

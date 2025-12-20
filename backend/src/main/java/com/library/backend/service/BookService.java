@@ -202,6 +202,7 @@ public class BookService {
     private BookResponse mapToResponse(Book book) {
         BookResponse response = new BookResponse();
         // Manuel Getter/Setter kullanımı
+        response.setId(book.getId());
         response.setDescription(book.getDescription());
         response.setIsbn(book.getIsbn());
         response.setPublisher(book.getPublisher());

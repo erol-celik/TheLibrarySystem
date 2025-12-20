@@ -6,7 +6,7 @@ export const UserService = {
     getMe: async (): Promise<UserAccount> => {
         const response = await api.get('/users/me'); // Backend'de bu ucu yazmıştık
         const data = response.data;
-        
+
         return {
             id: String(data.id),
             username: data.name,
@@ -15,11 +15,11 @@ export const UserService = {
                 ? data.roles[0].replace('ROLE_', '').toLowerCase()
                 : 'user',
             status: data.isBanned ? 'blocked' : 'active',
-            walletBalance: data.balance || 0,
-            penaltyCount: data.penaltyScore || 0,
-            phone: data.phone || '',
+            walletBalance: data.walletBalance || 0,
+            penaltyCount: 0, // Backend DTO'da penaltyScore/penaltyCount yok, geçici olarak 0
+            phone: data.phone || '', // Backend'de tanımlı
             address: data.address || '',
-            profilePicture:data.avatarUrl || '',
+            profilePicture: data.avatarUrl || '',
             badge: 'Member',
             createdDate: new Date().toISOString()
         };
