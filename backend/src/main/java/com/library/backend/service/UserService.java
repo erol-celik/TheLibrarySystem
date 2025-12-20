@@ -24,6 +24,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
+
     public UserService(UserRepository userRepository, WalletRepository walletRepository) {
         this.userRepository = userRepository;
         this.walletRepository = walletRepository;
@@ -35,13 +36,13 @@ public class UserService {
         User user = userRepository.findByEmail(authenticatedUserEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("Aktif kullanıcı bulunamadı."));
 
-        if(user.isBanned()){
+        if (user.isBanned()) {
             System.out.println("Hesabınız yönetici tarafından askıya alınmıştır.");
             throw new BadCredentialsException("Hesabınız yönetici tarafından askıya alınmıştır.");
         }
         // Cüzdan bilgisini çekme
         BigDecimal balance = walletRepository.findByUser(user)
-                .map(Wallet:: getBalance)
+                .map(Wallet::getBalance)
                 .orElse(BigDecimal.ZERO); // Cüzdan yoksa 0 dön
 
         UserProfileResponse response = new UserProfileResponse();
@@ -68,8 +69,7 @@ public class UserService {
         User user = userRepository.findByEmail(authenticatedUserEmail)
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı."));
 
-
-        if(user.isBanned()){
+        if (user.isBanned()) {
             System.out.println("Hesabınız yönetici tarafından askıya alınmıştır.");
             throw new BadCredentialsException("Hesabınız yönetici tarafından askıya alınmıştır.");
         }
@@ -78,9 +78,12 @@ public class UserService {
             user.setName(request.getName());
         }
 
-        // Avatar ve Bio alanlarını güncelleme (null ile göndermek temizlemek anlamına gelir)
+        // Avatar ve Bio alanlarını güncelleme (null ile göndermek temizlemek anlamına
+        // gelir)
         user.setAvatarUrl(request.getProfilePictureUrl());
         user.setBio(request.getBio());
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setAddress(request.getAddress());
 
         userRepository.save(user);
 
@@ -88,21 +91,19 @@ public class UserService {
         return getMyProfile(user.getEmail());
     }
 
-
     @Transactional
-    public void banUser(Long userId){
+    public void banUser(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(()-> new RuntimeException("Yasaklanacak kullanıcı bulunamadı."));
+                .orElseThrow(() -> new RuntimeException("Yasaklanacak kullanıcı bulunamadı."));
 
         user.setBanned(!user.isBanned());
-
 
         userRepository.save(user);
 
     }
 
-    public List<AdminUserResponse> listUsers(Optional<Boolean> isBanned){
-        if(isBanned.isPresent()){
+    public List<AdminUserResponse> listUsers(Optional<Boolean> isBanned) {
+        if (isBanned.isPresent()) {
             List<User> selectedUsers = userRepository.findAllByIsBanned(isBanned.get());
 
             return convertToDtoList(selectedUsers);
@@ -112,15 +113,13 @@ public class UserService {
         return convertToDtoList(allUsers);
     }
 
-
     private List<AdminUserResponse> convertToDtoList(List<User> users) {
         return users.stream()
                 .map(this::mapToAdminUserResponse)
                 .collect(Collectors.toList());
     }
 
-
-    private AdminUserResponse mapToAdminUserResponse(User user){
+    private AdminUserResponse mapToAdminUserResponse(User user) {
         AdminUserResponse response = new AdminUserResponse();
         response.setName(user.getName());
         response.setEmail(user.getEmail());

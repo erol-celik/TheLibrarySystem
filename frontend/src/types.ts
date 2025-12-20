@@ -43,5 +43,6 @@ export interface UserAccount {
   address: string;
   profilePicture: string;
   badge: string; // Şimdilik string, backend'den badge sistemi kalktı ama UI istiyor
+  bio?: string;
   createdDate: string;
 }

@@ -35,7 +35,7 @@ export function Sidebar({ userRole, activeTab, onTabChange, onLogout, notificati
   };
 
   const colors = roleColors[userRole];
-  
+
   const userMenuItems = [
     { id: 'home', icon: Home, label: 'Home' },
     { id: 'catalog', icon: Library, label: 'Book Catalog' },
@@ -51,7 +51,7 @@ export function Sidebar({ userRole, activeTab, onTabChange, onLogout, notificati
     { id: 'home', icon: Home, label: 'Home' },
     { id: 'catalog', icon: Library, label: 'Book Catalog' },
     { id: 'bookManagement', icon: BookMarked, label: 'Book Management' },
-    { id: 'librarian', icon: ClipboardList, label: 'Requests' },
+    { id: 'requests', icon: ClipboardList, label: 'Requests' },
     { id: 'notifications', icon: Bell, label: 'Notifications', badge: notificationCount },
   ];
 
@@ -64,10 +64,10 @@ export function Sidebar({ userRole, activeTab, onTabChange, onLogout, notificati
     { id: 'notifications', icon: Bell, label: 'Notifications', badge: notificationCount },
   ];
 
-  const menuItems = 
+  const menuItems =
     userRole === 'user' ? userMenuItems :
-    userRole === 'librarian' ? librarianMenuItems :
-    adminMenuItems;
+      userRole === 'librarian' ? librarianMenuItems :
+        adminMenuItems;
 
   return (
     <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-screen flex flex-col transition-colors sticky top-0">
@@ -87,16 +87,15 @@ export function Sidebar({ userRole, activeTab, onTabChange, onLogout, notificati
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
-          
+
           return (
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                isActive 
-                  ? `${colors.bg} text-white shadow-lg` 
-                  : `text-gray-600 dark:text-gray-300 ${colors.hoverBg}`
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
+                ? `${colors.bg} text-white shadow-lg`
+                : `text-gray-600 dark:text-gray-300 ${colors.hoverBg}`
+                }`}
             >
               <Icon className="w-5 h-5" />
               <span className="flex-1 text-left">{item.label}</span>

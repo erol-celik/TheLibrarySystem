@@ -8,13 +8,13 @@ export const RentalService = {
     },
 
     getUserRentals: async () => {
-        const response = await api.get('/rentals/my-rentals');
+        const response = await api.get('/users/book-history');
         return response.data;
     },
 
     // Tüm bekleyen talepleri getir (Librarian/Admin için)
     getAllRequests: async () => {
-        const response = await api.get('/api/rentals/requests'); // Backend'de bu endpoint'i kontrol et
+        const response = await api.get('/rentals/requests'); // Fixed: Removed double /api
         return response.data;
     },
 

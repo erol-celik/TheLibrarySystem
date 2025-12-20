@@ -9,7 +9,9 @@ interface AccountManagementProps {
   email: string;
   phone: string;
   address: string;
-  onUpdateProfile?: (email: string, phone: string, address: string) => void;
+  bio?: string;
+  isBanned?: boolean;
+  onUpdateProfile?: (data: { fullName: string; phone: string; address: string; bio: string }) => void;
 }
 
 export function AccountManagement({
@@ -19,6 +21,8 @@ export function AccountManagement({
   email,
   phone,
   address,
+  bio,
+  isBanned,
   onUpdateProfile
 }: AccountManagementProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -28,15 +32,41 @@ export function AccountManagement({
     email: email,
     phone: phone,
     address: address,
+    bio: bio || '',
   });
+
+  // Sync state with props when props change (e.g. after update)
+  useEffect(() => {
+    setProfile({
+      fullName: username,
+      email: email,
+      phone: phone,
+      address: address,
+      bio: bio || ''
+    });
+  }, [username, email, phone, address, bio]);
 
   const [editedProfile, setEditedProfile] = useState(profile);
 
+  // Sync edited profile when editing starts
+  useEffect(() => {
+    if (isEditing) {
+      setEditedProfile(profile);
+    }
+  }, [isEditing, profile]);
+
+
   const handleSave = () => {
-    setProfile(editedProfile);
+    // Optimistic Update is risky here if backend fails, so let parent handle state update or just fire event
+    // setProfile(editedProfile); // Let props update drive this
     setIsEditing(false);
     if (onUpdateProfile) {
-      onUpdateProfile(editedProfile.email, editedProfile.phone, editedProfile.address);
+      onUpdateProfile({
+        fullName: editedProfile.fullName,
+        phone: editedProfile.phone,
+        address: editedProfile.address,
+        bio: editedProfile.bio
+      });
     }
   };
 
@@ -54,8 +84,18 @@ export function AccountManagement({
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Account Management</h2>
           {!isEditing ? (
             <button
-              onClick={() => setIsEditing(true)}
-              className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+              onClick={() => {
+                if (isBanned) {
+                  toast.error("Account suspended. You cannot edit your profile.");
+                  return;
+                }
+                setIsEditing(true);
+              }}
+              disabled={isBanned}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isBanned
+                  ? 'bg-gray-400 cursor-not-allowed text-gray-200'
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
+                }`}
             >
               <Edit2 className="w-4 h-4" />
               <span>Edit Profile</span>
@@ -85,12 +125,27 @@ export function AccountManagement({
           <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
             <User className="w-12 h-12 text-white" />
           </div>
-          <div>
+          <div className="flex-1">
             <h3 className="text-gray-900 dark:text-white">{profile.fullName}</h3>
-            <p className="text-gray-600 dark:text-gray-300 capitalize">{userRole} Account</p>
+            {/* BIO SECTION */}
+            {isEditing ? (
+              <textarea
+                value={editedProfile.bio}
+                onChange={(e) => setEditedProfile({ ...editedProfile, bio: e.target.value })}
+                placeholder="Tell us about yourself..."
+                className="mt-2 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-sm"
+                rows={2}
+              />
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 italic">
+                {profile.bio || "No bio added yet."}
+              </p>
+            )}
+
             <div className="flex items-center gap-2 mt-2">
-              <span className="inline-block px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
-                Active
+              <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${isBanned ? 'bg-red-100 text-red-700' : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                }`}>
+                {isBanned ? 'Suspended' : 'Active'}
               </span>
               {penaltyCount > 0 && (
                 <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full ${penaltyCount >= 3 ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'

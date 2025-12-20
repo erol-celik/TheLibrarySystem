@@ -163,5 +163,20 @@ public class NotificationService {
         return response;
     }
 
+    @Transactional
+    public void deleteNotification(Long id, String userEmail) {
+        // 1. Bildirimi ID ile veritabanında ara
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Notification not found with id: " + id));
+
+        // 2. Güvenlik Kontrolü: Bildirim bu kullanıcıya mı ait?
+        // Notification entity'si içindeki recipientUser üzerinden kontrol ediyoruz
+        if (!notification.getRecipientUser().getEmail().equals(userEmail)) {
+            throw new RuntimeException("You are not authorized to delete this notification.");
+        }
+
+        // 3. Bildirimi sil
+        notificationRepository.delete(notification);
+    }
 
 }

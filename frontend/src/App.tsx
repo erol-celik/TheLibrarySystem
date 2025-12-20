@@ -10,6 +10,8 @@ import { BookDetailModal } from './components/BookDetailModal';
 import { AccountManagement } from './components/AccountManagement';
 import { Wallet, Transaction } from './components/Wallet';
 import { HomePage } from './components/HomePage';
+import { LibrarianPanel } from './components/LibrarianPanel';
+import { BookHistory } from './components/BookHistory';
 
 // Servisler ve Tipler
 import { AuthService } from './services/AuthService';
@@ -19,6 +21,8 @@ import { Book, UserAccount } from './types';
 import { DashboardService } from "./services/DashboardService";
 import { RentalService } from './services/RentalService';
 import { WalletService } from "./services/WalletService";
+import { NotificationService, NotificationItem } from './services/NotificationService';
+import { Notifications } from './components/Notifications';
 
 
 export default function App() {
@@ -39,6 +43,8 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [rentalRequests, setRentalRequests] = useState([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [notificationCount, setNotificationCount] = useState(0);
   // Seçili Kitap (Modal için)
   // Pagination State
   const [currentPage, setCurrentPage] = useState(0);
@@ -90,10 +96,20 @@ export default function App() {
 
   // Reset Page logic is now inside handleSearch (Force Sync)
   useEffect(() => {
-    if (activeTab === 'requests' && (currentUser?.role === 'admin' || currentUser?.role === 'librarian')) {
+    if (activeTab === 'requests' && (currentUser?.role === 'librarian' || currentUser?.role === 'admin')) {
       RentalService.getAllRequests().then(setRentalRequests);
     }
-  }, [activeTab]);
+    if (activeTab === 'notifications') {
+      fetchNotificationsRaw();
+    }
+  }, [activeTab, currentUser]);
+
+  // Sayfa İlk Yüklendiğinde Bildirim Sayısını Getir (Sadece Giriş Yapılmışsa)
+  useEffect(() => {
+    if (isLoggedIn) {
+      NotificationService.getUnreadCount().then(setNotificationCount).catch(() => { });
+    }
+  }, [isLoggedIn]);
 
   // --- VERİ ÇEKME FONKSİYONU ---
   const fetchLibraryData = async () => {
@@ -176,6 +192,10 @@ export default function App() {
     setSelectedCategory(newCat);
     // handleSearch(0, newCat); // REMOVED: useEffect will trigger search
   };
+
+  useEffect(() => {
+    // console.log("App.tsx Rendered. ActiveTab:", activeTab);
+  }, [activeTab]);
 
   const handleBorrow = async (bookId: string) => {
     if (!bookId || bookId === "undefined") {
@@ -276,6 +296,26 @@ export default function App() {
     }
   };
 
+  const handleUpdateProfile = async (data: { fullName: string; phone: string; address: string; bio: string }) => {
+    if (!currentUser) return;
+    try {
+      setIsLoadingData(true);
+      const updated = await UserService.updateProfile({
+        username: data.fullName,
+        phone: data.phone,
+        address: data.address,
+        bio: data.bio
+      });
+      setCurrentUser(updated);
+      toast.success("Profil başarıyla güncellendi!");
+    } catch (error: any) {
+      console.error("Profil güncelleme hatası:", error);
+      toast.error("Profil güncellenemedi.");
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
   const handleAddFunds = async (amount: number) => {
 
     if (isNaN(amount) || amount <= 0) {
@@ -305,6 +345,68 @@ export default function App() {
   };
 
 
+  // --- BİLDİRİM İŞLEMLERİ ---
+  const fetchNotificationsRaw = async () => {
+    try {
+      if (!isLoggedIn) return;
+      const notes = await NotificationService.getAllNotifications();
+      setNotifications(notes);
+
+      const count = await NotificationService.getUnreadCount();
+      setNotificationCount(count);
+    } catch (e) {
+      console.error("Bildirimler çekilemedi", e);
+    }
+  };
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await NotificationService.markAsRead(id);
+      // State güncelle (tek tek fetch yapmaya gerek yok)
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+      setNotificationCount(prev => Math.max(0, prev - 1));
+    } catch (e) {
+      console.error("Okundu işaretlenemedi", e);
+    }
+  };
+
+  const handleDeleteNotification = async (id: string) => {
+    try {
+      // Optimistic update
+      const notificationToDelete = notifications.find(n => n.id === id);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+
+      // If it was unread, decrease count
+      if (notificationToDelete && !notificationToDelete.read) {
+        setNotificationCount(prev => Math.max(0, prev - 1));
+      }
+
+      await NotificationService.deleteNotification(id);
+      toast.success("Bildirim silindi.");
+    } catch (e) {
+      console.error("Bildirim silinemedi", e);
+      toast.error("Bildirim silinirken bir hata oluştu.");
+      // Revert changes if needed, but for now just showing error is enough combined with a refresh could be better but keeping it simple as per plan
+      fetchNotificationsRaw(); // Re-fetch to sync state
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+      if (unreadIds.length === 0) return;
+
+      await NotificationService.markAllAsRead(unreadIds);
+
+      // Hepsini okundu yap
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setNotificationCount(0);
+      toast.success("Tüm bildirimler okundu olarak işaretlendi.");
+    } catch (e) {
+      toast.error("İşlem başarısız.");
+    }
+  };
+
   // --- RENDER (Ekran Çizimi) ---
   return (
     <>
@@ -330,7 +432,7 @@ export default function App() {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             onLogout={handleLogout}
-            notificationCount={0}
+            notificationCount={notificationCount}
           />
 
           <div className="flex-1 overflow-x-hidden">
@@ -403,44 +505,50 @@ export default function App() {
                       address={currentUser.address}
                       penaltyCount={currentUser.penaltyCount}
                       userRole={currentUser.role}
-                      onUpdateProfile={() => toast.info("Profil güncelleme özelliği yakında.")}
+                      bio={currentUser.bio}
+                      isBanned={currentUser.status === 'blocked'}
+                      onUpdateProfile={handleUpdateProfile}
                     />
                   )}
 
+                  {activeTab === 'history' && (
+                    <BookHistory />
+                  )}
+
                   {activeTab === 'requests' && (
-                    currentUser?.role?.toUpperCase() === 'ROLE_LIBRARIAN')
+                    currentUser?.role === 'librarian' || currentUser?.role === 'admin')
                     && (
-                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-                        <h2 className="text-xl font-bold mb-4">Bekleyen Kiralama Talepleri</h2>
-                        <table className="w-full text-left">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="py-2">Kullanıcı</th>
-                              <th>Kitap</th>
-                              <th>Tarih</th>
-                              <th>İşlem</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {rentalRequests.map((req: any) => (
-                              <tr key={req.id} className="border-b">
-                                <td className="py-3">{req.userName}</td>
-                                <td>{req.bookTitle}</td>
-                                <td>{req.rentDate}</td>
-                                <td>
-                                  <button
-                                    onClick={() => handleApprove(req.id)}
-                                    className="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700"
-                                  >
-                                    Onayla
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                      <LibrarianPanel
+                        books={books}
+                        onAddBook={() => { }}
+                        onRemoveBook={() => { }}
+                        borrowRequests={rentalRequests.map((req: any) => ({
+                          id: String(req.id),
+                          bookId: String(req.bookId || ''),
+                          bookTitle: req.bookTitle,
+                          username: req.userName,
+                          requestDate: req.rentDate,
+                          status: req.status
+                        }))}
+                        donationRequests={[]}
+                        feedbacks={[]}
+                        onApproveBorrow={(id) => handleApprove(Number(id))}
+                        onRejectBorrow={() => { }}
+                        onApproveDonation={() => { }}
+                        onRejectDonation={() => { }}
+                      />
                     )}
+
+                  {activeTab === 'notifications' && (
+                    <Notifications
+                      notifications={notifications}
+                      onMarkAsRead={handleMarkAsRead}
+                      onDelete={handleDeleteNotification}
+                      onMarkAllAsRead={handleMarkAllAsRead}
+                      currentUserRole={currentUser?.role}
+                      currentUsername={currentUser?.username}
+                    />
+                  )}
                 </>
               )}
             </main>

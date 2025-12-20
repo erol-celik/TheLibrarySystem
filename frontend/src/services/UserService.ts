@@ -11,7 +11,7 @@ export const UserService = {
             id: String(data.id),
             username: data.name,
             email: data.email,
-            role: (data.roles && data.roles.length > 0)
+            role: data.role ? data.role.replace('ROLE_', '').toLowerCase() : (data.roles && data.roles.length > 0)
                 ? data.roles[0].replace('ROLE_', '').toLowerCase()
                 : 'user',
             status: data.isBanned ? 'blocked' : 'active',
@@ -20,6 +20,37 @@ export const UserService = {
             phone: data.phone || '', // Backend'de tanımlı
             address: data.address || '',
             profilePicture: data.avatarUrl || '',
+            bio: data.bio || '',
+            badge: 'Member',
+            createdDate: new Date().toISOString()
+        };
+    },
+    // Profil Güncelle
+    updateProfile: async (data: Partial<UserAccount>): Promise<UserAccount> => {
+        // Backend DTO: name, bio, phoneNumber, address, profilePictureUrl
+        const payload = {
+            name: data.username, // Field mapping: username (frontend) -> name (backend)
+            bio: data.bio,
+            phoneNumber: data.phone,
+            address: data.address,
+            // profilePictureUrl: data.profilePicture // Şimdilik resim yok
+        };
+        const response = await api.put('/users/me', payload);
+
+        // Response'u UserAccount tipine çevirebiliriz veya mevcut getMe mapping mantığını kullanabiliriz
+        const resData = response.data;
+        return {
+            id: String(resData.id),
+            username: resData.name,
+            email: resData.email,
+            role: resData.role ? resData.role.replace('ROLE_', '').toLowerCase() : 'user', // Same logic as getMe
+            status: resData.isBanned ? 'blocked' : 'active',
+            walletBalance: resData.walletBalance || 0,
+            penaltyCount: 0,
+            phone: resData.phone || '',
+            address: resData.address || '',
+            profilePicture: resData.avatarUrl || '',
+            bio: resData.bio || '',
             badge: 'Member',
             createdDate: new Date().toISOString()
         };
