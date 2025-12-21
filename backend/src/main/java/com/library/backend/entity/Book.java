@@ -6,25 +6,22 @@ import com.library.backend.entity.enums.RentalStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.With;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 @Entity
-@Table(name="books")//veritabanında tablo oluşturur
-@Data//lombok getter setter kurar
-@EqualsAndHashCode(callSuper = true, exclude = {"category", "tags"})
+@Table(name = "books") // veritabanında tablo oluşturur
+@Data // lombok getter setter kurar
+@EqualsAndHashCode(callSuper = true, exclude = { "category", "tags" })
 
-public class Book  extends BaseEntity{
-
+public class Book extends BaseEntity {
 
     @Column(nullable = false)
-    private String title;//at
+    private String title;// at
     @Column(nullable = false)
-    private String author;//yazar
+    private String author;// yazar
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -52,14 +49,14 @@ public class Book  extends BaseEntity{
     @Column(name = "book_type", nullable = false)
     private BookType bookType;// dijital-fiziki-ikisi
 
-    @Column(name="price")
-    private BigDecimal price;//dijital satın alam fiyatı
+    @Column(name = "price")
+    private BigDecimal price;// dijital satın alam fiyatı
 
     @Column(name = "ebook_file_path")
     private String ebookFilePath; // dijital link
 
     @Column(nullable = false)
-    private Integer totalStock; //toplam fiziki kopya sayısı
+    private Integer totalStock; // toplam fiziki kopya sayısı
 
     @Column(nullable = false)
     private Integer availableStock;// ödünç verilebilir fiziki kopya sayısı
@@ -77,11 +74,7 @@ public class Book  extends BaseEntity{
     private boolean isActive = true;
 
     @ManyToMany(fetch = FetchType.EAGER) // Kitabı çektiğinde kategorisini görmek istersin, burası EAGER olabilir.
-    @JoinTable(
-            name = "book_categories",
-            joinColumns = @JoinColumn(name = "book_id"),
-            inverseJoinColumns = @JoinColumn(name = "category_id")
-    )
+    @JoinTable(name = "book_categories", joinColumns = @JoinColumn(name = "book_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
     private Set<Category> categories = new HashSet<>();
 
     // Helper metodlar (Service katmanında kullanılır)
@@ -94,15 +87,13 @@ public class Book  extends BaseEntity{
         this.categories.remove(category);
         category.getBooks().remove(this);
     }
-    //2. TAGLER (Kör Randevu / Vibe Filtresi İçin - YENİ)
-    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JsonIgnore
-    @JoinTable(
-            name = "book_tags",
 
-            joinColumns = @JoinColumn(name = "book_id"),
-            inverseJoinColumns = @JoinColumn(name = "tag_id")
-    )
+    // 2. TAGLER (Kör Randevu / Vibe Filtresi İçin - YENİ)
+    @ManyToMany(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    @JsonIgnore
+    @JoinTable(name = "book_tags",
+
+            joinColumns = @JoinColumn(name = "book_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
 
     private Set<Tag> tags = new HashSet<>();
 

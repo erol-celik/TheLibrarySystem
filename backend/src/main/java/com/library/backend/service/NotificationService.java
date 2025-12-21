@@ -39,7 +39,8 @@ public class NotificationService {
 
     @Transactional
     // 2. bildirim gönder (id üzerinden - sistem içi tetiklemeler için)
-    // örneğin: librarian onay butonuna bastığında kullanıcının emailini bilmeyebilir, id'si yeterli.
+    // örneğin: librarian onay butonuna bastığında kullanıcının emailini
+    // bilmeyebilir, id'si yeterli.
     public void sendNotificationById(Long senderId, Long recipientId, String message) {
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new RuntimeException("Sender user not found."));
@@ -62,12 +63,14 @@ public class NotificationService {
                 .orElseThrow(() -> new RuntimeException("User not found."));
 
         // 1. Entity listesini veritabanından çek
-        List<Notification> notifications = notificationRepository.findByRecipientUserIdOrderByCreatedDateDesc(user.getId());
+        List<Notification> notifications = notificationRepository
+                .findByRecipientUserIdOrderByCreatedDateDesc(user.getId());
 
         // 2. Entity Listesini DTO Listesine Dönüştürme (Burayı soruyorsunuz)
-        return notifications.stream()             // Listeyi bir akışa dönüştür
-                .map(this::mapToNotificationResponse) // Akıştaki her Notification Entity'sini, yukarıdaki metodumuzla NotificationResponse DTO'suna çevir
-                .collect(Collectors.toList());    // DTO'ları tekrar List<NotificationResponse> olarak topla ve döndür
+        return notifications.stream() // Listeyi bir akışa dönüştür
+                .map(this::mapToNotificationResponse) // Akıştaki her Notification Entity'sini, yukarıdaki metodumuzla
+                                                      // NotificationResponse DTO'suna çevir
+                .collect(Collectors.toList()); // DTO'ları tekrar List<NotificationResponse> olarak topla ve döndür
     }
 
     @Transactional
@@ -93,7 +96,8 @@ public class NotificationService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found."));
 
-        // bunu repository'ye eklememiştik, stream ile sayalım veya repository'ye count metodu ekleyebiliriz.
+        // bunu repository'ye eklememiştik, stream ile sayalım veya repository'ye count
+        // metodu ekleyebiliriz.
         // performans için repository'ye eklemek daha iyi ama şimdilik stream yapalım.
         return notificationRepository.findByRecipientUserIdOrderByCreatedDateDesc(user.getId())
                 .stream()
@@ -101,16 +105,18 @@ public class NotificationService {
                 .count();
     }
 
-    // 6. bildirim gönder (Recipient User nesnesi üzerinden - System Sender Varsayımı ile)
+    // 6. bildirim gönder (Recipient User nesnesi üzerinden - System Sender
+    // Varsayımı ile)
     // RentalService'deki gibi iş akışlarından kolay bildirim göndermek için.
     @Transactional
     public void sendSystemNotification(User recipient, String message) {
-        // Not: Sistemin kendisini temsil eden kullanıcının ID'si (örneğin 1L) varsayılır.
-        // Bu ID'nin veritabanında mevcut bir Admin/Librarian veya özel bir Sistem kullanıcısı olması gerekir.
+        // Not: Sistemin kendisini temsil eden kullanıcının ID'si (örneğin 1L)
+        // varsayılır.
+        // Bu ID'nin veritabanında mevcut bir Admin/Librarian veya özel bir Sistem
+        // kullanıcısı olması gerekir.
 
         User sender = userRepository.findById(1L) // System/Admin Kullanıcı ID'si varsayımı
                 .orElseThrow(() -> new RuntimeException("System user (ID=1) not found for notification sender."));
-
 
         Notification notification = new Notification();
         notification.setSenderUser(sender);
@@ -123,6 +129,11 @@ public class NotificationService {
 
     @Transactional
     public void sendNotificationWithLink(User sender, User recipient, String message, String url) {
+        if (sender == null) {
+            sender = userRepository.findById(1L)
+                    .orElseThrow(() -> new RuntimeException("System user (ID=1) not found for notification sender."));
+        }
+
         Notification notification = new Notification();
         notification.setSenderUser(sender);
         notification.setRecipientUser(recipient);
@@ -132,8 +143,7 @@ public class NotificationService {
         notificationRepository.save(notification);
     }
 
-
-// NotificationService.java içinde veya bir Mapper sınıfında:
+    // NotificationService.java içinde veya bir Mapper sınıfında:
 
     private UserMinimalResponse mapToMinimalUserResponse(User user) {
         if (user == null) {

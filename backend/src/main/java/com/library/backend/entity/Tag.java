@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -15,7 +14,6 @@ import java.util.Set;
 @EqualsAndHashCode(callSuper = true, exclude = "books") // İlişkileri Equals/HashCode'dan çıkar.
 @ToString(exclude = "books") // Sonsuz döngüyü engelle
 public class Tag extends BaseEntity {
-
 
     // Tag'in ismi (Örn: 'Hüzünlü', 'Fast-Paced')
     @Column(name = "name", unique = true, nullable = false)

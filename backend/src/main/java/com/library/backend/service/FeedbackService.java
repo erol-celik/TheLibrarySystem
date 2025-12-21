@@ -31,9 +31,19 @@ public class FeedbackService {
         feedback.setUser(user);
         feedback.setFeedbackType(request.getFeedbackType());
         feedback.setMessage(request.getMessage());
+
+        if (request.getFeedbackType().toString().equals("SUGGESTION")) {
+            feedback.setBookTitle(request.getBookTitle());
+            feedback.setBookAuthor(request.getBookAuthor());
+        }
+
         feedback.setFeedbackStatus(FeedbackStatus.NEW);
 
         feedbackRepository.save(feedback);
+    }
+
+    public List<Feedback> getAllFeedbacks() {
+        return feedbackRepository.findAll();
     }
 
     // Admin/Librarian okur ve çözer
@@ -46,7 +56,8 @@ public class FeedbackService {
         feedbackRepository.save(feedback);
 
         // Bildirim
-        String msg = "Your feedback regarding '" + feedback.getFeedbackType() + "' has been reviewed. Note: " + responseMessage;
+        String msg = "Your feedback regarding '" + feedback.getFeedbackType() + "' has been reviewed. Note: "
+                + responseMessage;
         notificationService.sendNotificationById(adminId, feedback.getUser().getId(), msg);
     }
 

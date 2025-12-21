@@ -7,4 +7,6 @@ import lombok.Data;
 public class FeedbackRequest {
     private FeedbackType feedbackType; // COMPLAINT veya SUGGESTION
     private String message;
+    private String bookTitle;
+    private String bookAuthor;
 }

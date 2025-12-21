@@ -12,8 +12,7 @@ import java.math.BigDecimal;
 @EqualsAndHashCode(callSuper = true)
 public class Donation extends BaseEntity {
 
-
-    //bağış yapan kullanıcı
+    // bağış yapan kullanıcı
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -25,6 +24,10 @@ public class Donation extends BaseEntity {
     // KİTABIN YAZARI (Bilgi amaçlı)
     @Column(name = "book_author")
     private String bookAuthor;
+
+    // AÇIKLAMA (Kitap durumu vb.)
+    @Column(name = "description")
+    private String description;
 
     // bağış statusu
     @Enumerated(EnumType.STRING)
