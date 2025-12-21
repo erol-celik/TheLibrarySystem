@@ -71,11 +71,8 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        // DİKKAT: Aldığın hataya özel düzeltme burasıdır.
-        // Standart dışı bir kullanım olsa da derleyicinin istediği format budur:
-        // Constructor injection kullanılıyor, setter kullanılmıyor.
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userDetailsService);
-
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }

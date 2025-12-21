@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { MessageSquare, Send, Lightbulb, AlertCircle, Sparkles, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import api from '../api/axiosConfig';
 
 interface Feedback {
   id: string;
@@ -19,6 +20,8 @@ interface FeedbackFormProps {
 
 export function FeedbackForm({ onAddFeedback, currentUsername = 'current_user', userRole = 'user' }: FeedbackFormProps) {
   const [message, setMessage] = useState('');
+  const [bookTitle, setBookTitle] = useState('');
+  const [bookAuthor, setBookAuthor] = useState('');
   const [category, setCategory] = useState('suggestion');
   const [submitted, setSubmitted] = useState(false);
 
@@ -62,32 +65,67 @@ export function FeedbackForm({ onAddFeedback, currentUsername = 'current_user', 
     { id: 'complaint', name: 'Complaint', icon: AlertCircle },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!message.trim()) {
-      toast.error('Please enter a message');
-      return;
+
+    // 1. Validation Logic
+    if (category === 'suggestion') {
+      if (!bookTitle.trim() || !bookAuthor.trim()) {
+        toast.error('Book Title and Author are required for suggestions.');
+        return;
+      }
+    } else {
+      // Validation for Complaint (Message required)
+      if (!message.trim()) {
+        toast.error('Please enter a message');
+        return;
+      }
     }
 
-    const newFeedback: Feedback = {
-      id: Date.now().toString(),
-      username: currentUsername,
-      message: message.trim(),
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      status: 'new',
-      category,
-    };
+    try {
+      if (category === 'suggestion') {
+        const payload = {
+          bookTitle: bookTitle.trim(),
+          bookAuthor: bookAuthor.trim(),
+        };
+        await api.post('/suggestions', payload);
 
-    onAddFeedback(newFeedback);
-    setMessage('');
-    setCategory('suggestion');
-    setSubmitted(true);
-    toast.success('Feedback sent successfully!');
-    
-    setTimeout(() => {
-      setSubmitted(false);
-    }, 3000);
+      } else {
+        const payload = {
+          message: message.trim(),
+          feedbackType: 'COMPLAINT'
+        };
+        await api.post('/feedback', payload);
+      }
+
+      // Success UI updates
+      if (onAddFeedback) {
+        const newFeedback: Feedback = {
+          id: Date.now().toString(),
+          username: currentUsername,
+          message: category === 'suggestion' ? `${bookTitle} - ${bookAuthor}` : message.trim(),
+          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          status: 'new',
+          category,
+        };
+        onAddFeedback(newFeedback);
+      }
+
+      setMessage('');
+      setBookTitle('');
+      setBookAuthor('');
+      setCategory('suggestion');
+      setSubmitted(true);
+      toast.success('Feedback sent successfully!');
+
+      setTimeout(() => {
+        setSubmitted(false);
+      }, 3000);
+
+    } catch (error: any) {
+      console.error("Feedback submission error:", error);
+      toast.error("Failed to send feedback. Please try again.");
+    }
   };
 
   return (
@@ -96,7 +134,7 @@ export function FeedbackForm({ onAddFeedback, currentUsername = 'current_user', 
       <div className={`bg-gradient-to-r ${colors.gradient} rounded-2xl shadow-2xl p-8 text-white relative overflow-hidden`}>
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -ml-24 -mb-24"></div>
-        
+
         <div className="relative z-10">
           <div className="flex items-center gap-4 mb-4">
             <div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl">
@@ -108,7 +146,7 @@ export function FeedbackForm({ onAddFeedback, currentUsername = 'current_user', 
             </div>
           </div>
           <p className="text-white/90 text-lg max-w-2xl">
-            Your feedback matters! Share your thoughts, suggestions, or report issues directly with the admin team. 
+            Your feedback matters! Share your thoughts, suggestions, or report issues directly with the admin team.
             We're committed to making BookHub better for everyone.
           </p>
         </div>
@@ -146,11 +184,10 @@ export function FeedbackForm({ onAddFeedback, currentUsername = 'current_user', 
                     key={cat.id}
                     type="button"
                     onClick={() => setCategory(cat.id)}
-                    className={`p-4 rounded-xl border-2 transition-all transform hover:scale-105 ${
-                      category === cat.id
-                        ? `border-${userRole === 'user' ? 'blue' : userRole === 'librarian' ? 'green' : 'purple'}-500 bg-gradient-to-br ${colors.gradient} text-white shadow-lg`
-                        : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-500'
-                    }`}
+                    className={`p-4 rounded-xl border-2 transition-all transform hover:scale-105 ${category === cat.id
+                      ? `border-${userRole === 'user' ? 'blue' : userRole === 'librarian' ? 'green' : 'purple'}-500 bg-gradient-to-br ${colors.gradient} text-white shadow-lg`
+                      : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-500'
+                      }`}
                   >
                     <Icon className={`w-6 h-6 mx-auto mb-2 ${category === cat.id ? 'text-white' : colors.accent}`} />
                     <p className={`text-sm ${category === cat.id ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`}>
@@ -162,10 +199,44 @@ export function FeedbackForm({ onAddFeedback, currentUsername = 'current_user', 
             </div>
           </div>
 
+          {/* Book Details - Only for Suggestion */}
+          {category === 'suggestion' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="bookTitle" className="block text-gray-900 dark:text-white mb-2 font-medium">
+                  Book Title *
+                </label>
+                <input
+                  type="text"
+                  id="bookTitle"
+                  value={bookTitle}
+                  onChange={(e) => setBookTitle(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="e.g. The Great Gatsby"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="bookAuthor" className="block text-gray-900 dark:text-white mb-2 font-medium">
+                  Author *
+                </label>
+                <input
+                  type="text"
+                  id="bookAuthor"
+                  value={bookAuthor}
+                  onChange={(e) => setBookAuthor(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="e.g. F. Scott Fitzgerald"
+                  required
+                />
+              </div>
+            </div>
+          )}
+
           {/* Message */}
           <div>
             <label htmlFor="message" className="block text-gray-900 dark:text-white mb-4">
-              Your Message
+              Your Message {category !== 'suggestion' && '*'}
             </label>
             <textarea
               id="message"
@@ -173,7 +244,9 @@ export function FeedbackForm({ onAddFeedback, currentUsername = 'current_user', 
               onChange={(e) => setMessage(e.target.value)}
               rows={10}
               className="w-full px-6 py-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Share your thoughts, suggestions, or report any issues you've encountered..."
+              placeholder={category === 'suggestion'
+                ? "Why do you recommend this book? (Optional)"
+                : "Describe your complaint in detail..."}
             />
             <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
               {message.length} / 1000 characters
@@ -187,7 +260,7 @@ export function FeedbackForm({ onAddFeedback, currentUsername = 'current_user', 
               className={`${colors.primary} text-white px-8 py-4 rounded-xl transition-all transform hover:scale-105 shadow-lg flex items-center gap-3 text-lg`}
             >
               <Send className="w-6 h-6" />
-              Send Feedback
+              Send {category === 'suggestion' ? 'Suggestion' : 'Feedback'}
               <Sparkles className="w-5 h-5" />
             </button>
             <button

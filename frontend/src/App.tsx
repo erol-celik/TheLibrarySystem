@@ -12,6 +12,8 @@ import { Wallet, Transaction } from './components/Wallet';
 import { HomePage } from './components/HomePage';
 import { LibrarianPanel } from './components/LibrarianPanel';
 import { BookHistory } from './components/BookHistory';
+import { FeedbackForm } from './components/FeedbackForm';
+import { DonationForm } from './components/DonationForm';
 
 // Servisler ve Tipler
 import { AuthService } from './services/AuthService';
@@ -23,6 +25,7 @@ import { RentalService } from './services/RentalService';
 import { WalletService } from "./services/WalletService";
 import { NotificationService, NotificationItem } from './services/NotificationService';
 import { Notifications } from './components/Notifications';
+import { FeedbackService, Feedback } from './services/FeedbackService';
 
 
 export default function App() {
@@ -45,6 +48,8 @@ export default function App() {
   const [rentalRequests, setRentalRequests] = useState([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+
   // Seçili Kitap (Modal için)
   // Pagination State
   const [currentPage, setCurrentPage] = useState(0);
@@ -98,6 +103,7 @@ export default function App() {
   useEffect(() => {
     if (activeTab === 'requests' && (currentUser?.role === 'librarian' || currentUser?.role === 'admin')) {
       RentalService.getAllRequests().then(setRentalRequests);
+      FeedbackService.getAllFeedbacks().then(setFeedbacks).catch(e => console.error(e));
     }
     if (activeTab === 'notifications') {
       fetchNotificationsRaw();
@@ -515,6 +521,25 @@ export default function App() {
                     <BookHistory />
                   )}
 
+                  {activeTab === 'donation' && (
+                    <DonationForm
+                      currentUsername={currentUser?.username}
+                      onAddDonation={(donation) => {
+                        console.log("Donation added:", donation);
+                        // Optional: Add to a local list or trigger a refetch if needed, 
+                        // but DonationForm now handles its own history fetching.
+                      }}
+                    />
+                  )}
+
+                  {activeTab === 'feedback' && (
+                    <FeedbackForm
+                      currentUsername={currentUser?.username}
+                      userRole={currentUser?.role}
+                      onAddFeedback={(fb) => console.log(fb)}
+                    />
+                  )}
+
                   {activeTab === 'requests' && (
                     currentUser?.role === 'librarian' || currentUser?.role === 'admin')
                     && (
@@ -530,12 +555,9 @@ export default function App() {
                           requestDate: req.rentDate,
                           status: req.status
                         }))}
-                        donationRequests={[]}
-                        feedbacks={[]}
+                        feedbacks={feedbacks}
                         onApproveBorrow={(id) => handleApprove(Number(id))}
                         onRejectBorrow={() => { }}
-                        onApproveDonation={() => { }}
-                        onRejectDonation={() => { }}
                       />
                     )}
 

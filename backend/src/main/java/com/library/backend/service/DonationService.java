@@ -31,16 +31,17 @@ public class DonationService {
         donation.setUser(user);
         donation.setBookTitle(request.getBookTitle());
         donation.setBookAuthor(request.getBookAuthor());
+        donation.setDescription(request.getDescription());
         donation.setStatus(DonationStatus.PENDING);
-        // description alanı entity'de yoksa ekleyebilirsin veya şimdilik pas geçebilirsin.
-        // donation.setDescription(request.getDescription());
 
         donationRepository.save(donation);
     }
 
     // 2. Bekleyen Bağışları Getir (LIBRARIAN)
-    public List<Donation> getPendingDonations() {
-        return donationRepository.findByStatus(DonationStatus.PENDING);
+    public List<com.library.backend.dto.contribution.DonationResponse> getPendingDonations() {
+        return donationRepository.findByStatus(DonationStatus.PENDING).stream()
+                .map(this::mapToResponse)
+                .collect(java.util.stream.Collectors.toList());
     }
 
     @Transactional
@@ -57,9 +58,8 @@ public class DonationService {
             donation.setStatus(DonationStatus.APPROVED);
 
             // A. KİTAP STOĞUNU GÜNCELLE
-            // Kitap sistemde var mı? (İsme ve yazara göre basit kontrol)
-            // Daha hassas kontrol için ISBN gerekirdi ama bağışta ISBN olmayabilir.
-            Optional<Book> existingBook = bookRepository.findByTitleContainingIgnoreCaseAndBookType(donation.getBookTitle(), BookType.PHYSICAL)
+            Optional<Book> existingBook = bookRepository
+                    .findByTitleContainingIgnoreCaseAndBookType(donation.getBookTitle(), BookType.PHYSICAL)
                     .stream()
                     .filter(b -> b.getAuthor().equalsIgnoreCase(donation.getBookAuthor()))
                     .findFirst();
@@ -70,28 +70,31 @@ public class DonationService {
                 book.setTotalStock(book.getTotalStock() + 1);
                 bookRepository.save(book);
             } else {
-                String encodedTitle = java.net.URLEncoder.encode(donation.getBookTitle(), java.nio.charset.StandardCharsets.UTF_8);
-                String encodedAuthor = java.net.URLEncoder.encode(donation.getBookAuthor(), java.nio.charset.StandardCharsets.UTF_8);
+                String encodedTitle = java.net.URLEncoder.encode(donation.getBookTitle(),
+                        java.nio.charset.StandardCharsets.UTF_8);
+                String encodedAuthor = java.net.URLEncoder.encode(donation.getBookAuthor(),
+                        java.nio.charset.StandardCharsets.UTF_8);
                 String targetUrl = "/admin/add-book?title=" + encodedTitle + "&author=" + encodedAuthor;
 
-                String librarianMsg = "Onaylanan '" + donation.getBookTitle() + "' kitabı sistemde bulunamadı. Eklemek için tıklayın.";
+                String librarianMsg = "Onaylanan '" + donation.getBookTitle()
+                        + "' kitabı sistemde bulunamadı. Eklemek için tıklayın.";
 
-                // Gönderen: SYSTEM (null olabilir veya özel bir sistem kullanıcısı)
-                // Alan: librarian (User nesnesi)
                 User librarian = userRepository.findById(librarianId)
                         .orElseThrow(() -> new RuntimeException("Librarian not found."));
                 notificationService.sendNotificationWithLink(null, librarian, librarianMsg, targetUrl);
             }
 
             // C. BİLDİRİM GÖNDER
-            String message = "Your donation for '" + donation.getBookTitle() + "' has been accepted. Thank you for your support!";
+            String message = "Your donation for '" + donation.getBookTitle()
+                    + "' has been accepted. Thank you for your support!";
             notificationService.sendNotificationById(librarianId, donation.getUser().getId(), message);
 
         } else {
             donation.setStatus(DonationStatus.REJECTED);
 
             // RED BİLDİRİMİ
-            String message = "Your donation for '" + donation.getBookTitle() + "' was not accepted. Reason: " + rejectionReason;
+            String message = "Your donation for '" + donation.getBookTitle() + "' was not accepted. Reason: "
+                    + rejectionReason;
             notificationService.sendNotificationById(librarianId, donation.getUser().getId(), message);
         }
 
@@ -99,8 +102,28 @@ public class DonationService {
     }
 
     // 4. Bağış Geçmişim (USER)
-    public List<Donation> getMyDonations(String userEmail) {
+    public List<com.library.backend.dto.contribution.DonationResponse> getMyDonations(String userEmail) {
         User user = userRepository.findByEmail(userEmail).orElseThrow();
-        return donationRepository.findByUserId(user.getId());
+        return donationRepository.findByUserId(user.getId()).stream()
+                .map(this::mapToResponse)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    private com.library.backend.dto.contribution.DonationResponse mapToResponse(Donation donation) {
+        com.library.backend.dto.contribution.DonationResponse response = new com.library.backend.dto.contribution.DonationResponse();
+        response.setId(donation.getId());
+        response.setBookTitle(donation.getBookTitle());
+        response.setBookAuthor(donation.getBookAuthor());
+        response.setDescription(donation.getDescription());
+        response.setStatus(donation.getStatus().name());
+        response.setRequestDate(donation.getCreatedDate());
+
+        // Lazy loading sorununu çözmek için burada veriyi çekip DTO'ya koyuyoruz.
+        // Ancak işlem sırasında Transaction açık olmalı (Service içinde zaten açık).
+        if (donation.getUser() != null) {
+            response.setUsername(donation.getUser().getUsername());
+        }
+
+        return response;
     }
 }

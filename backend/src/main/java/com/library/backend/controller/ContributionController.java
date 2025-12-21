@@ -1,10 +1,10 @@
 package com.library.backend.controller;
 
 import com.library.backend.dto.contribution.DonationRequest;
+import com.library.backend.dto.contribution.DonationResponse;
 import com.library.backend.dto.contribution.FeedbackRequest;
 import com.library.backend.dto.contribution.SuggestionRequest;
 import com.library.backend.entity.BookSuggestion;
-import com.library.backend.entity.Donation;
 import com.library.backend.entity.User;
 import com.library.backend.entity.enums.BookSuggestionStatus;
 import com.library.backend.service.DonationService;
@@ -39,20 +39,21 @@ public class ContributionController {
 
     @GetMapping("/donations/my-history")
     @PreAuthorize("hasRole('ROLE_USER')")
-    public ResponseEntity<List<Donation>> getMyDonations() {
+    public ResponseEntity<List<DonationResponse>> getMyDonations() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(donationService.getMyDonations(email));
     }
 
     @GetMapping("/librarian/donations/pending")
     @PreAuthorize("hasAnyRole('ROLE_LIBRARIAN', 'ROLE_ADMIN')")
-    public ResponseEntity<List<Donation>> getPendingDonations() {
+    public ResponseEntity<List<DonationResponse>> getPendingDonations() {
         return ResponseEntity.ok(donationService.getPendingDonations());
     }
 
     @PutMapping("/librarian/donations/{id}/process")
     @PreAuthorize("hasAnyRole('ROLE_LIBRARIAN', 'ROLE_ADMIN')")
-    public ResponseEntity<?> processDonation(@PathVariable Long id, @RequestParam boolean approved, @RequestParam(required = false) String reason) {
+    public ResponseEntity<?> processDonation(@PathVariable Long id, @RequestParam boolean approved,
+            @RequestParam(required = false) String reason) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User librarian = userRepository.findByEmail(email).orElseThrow(); // İşlemi yapan kişi
 
@@ -92,6 +93,12 @@ public class ContributionController {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         feedbackService.createFeedback(email, request);
         return ResponseEntity.ok("Feedback sent.");
+    }
+
+    @GetMapping("/feedbacks")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
+    public ResponseEntity<List<com.library.backend.entity.Feedback>> getAllFeedbacks() {
+        return ResponseEntity.ok(feedbackService.getAllFeedbacks());
     }
 
     // Admin feedback çözme endpoint'i de eklenebilir...
