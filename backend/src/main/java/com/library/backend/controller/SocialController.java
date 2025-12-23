@@ -17,7 +17,6 @@ public class SocialController {
 
     private final ReviewService reviewService;
 
-
     // yorum yap
     @PostMapping("/reviews")
     @PreAuthorize("hasRole('ROLE_USER')")
@@ -57,4 +56,9 @@ public class SocialController {
         }
     }
 
+    // YENİ: Bir kitaba ait yorumları getir
+    @GetMapping("/reviews/book/{bookId}")
+    public ResponseEntity<List<com.library.backend.entity.Review>> getReviewsByBook(@PathVariable Long bookId) {
+        return ResponseEntity.ok(reviewService.getReviewsByBookId(bookId));
+    }
 }

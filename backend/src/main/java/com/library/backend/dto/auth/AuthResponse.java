@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AuthResponse {
 
-    private String token;       // İşte o meşhur giriş anahtarı
-    private UserDTO user;       // Kullanıcının adı, emaili vs.
+    private String token; // İşte o meşhur giriş anahtarı
+    private String role; // Kullanıcının rolü
+    private UserDTO user; // Kullanıcının adı, emaili vs.
 }

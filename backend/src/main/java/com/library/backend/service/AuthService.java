@@ -2,86 +2,74 @@ package com.library.backend.service;
 
 import com.library.backend.dto.auth.AuthResponse;
 import com.library.backend.dto.auth.LoginRequest;
-import com.library.backend.dto.auth.RegisterRequest;
-import com.library.backend.dto.user.UserDTO;
-import com.library.backend.entity.User;
-import com.library.backend.entity.enums.RoleType;
 import com.library.backend.repository.UserRepository;
 import com.library.backend.security.JwtService;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
-    private final AuthenticationManager authenticationManager;
+        private final UserRepository userRepository;
+        private final AuthenticationManager authenticationManager;
+        private final JwtService jwtService;
+        private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
-    public AuthResponse register(RegisterRequest request) {
-        // 1. Email kontrolü
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Bu email zaten kayıtlı.");
+        public AuthResponse register(com.library.backend.dto.auth.RegisterRequest request) {
+                // 1. Email check
+                if (userRepository.existsByEmail(request.getEmail())) {
+                        throw new RuntimeException("Email is already in use.");
+                }
+
+                // 2. Validate passwords
+                if (!request.getPassword().equals(request.getConfirmPassword())) {
+                        throw new RuntimeException("Passwords do not match.");
+                }
+
+                // 3. Create User
+                com.library.backend.entity.User user = new com.library.backend.entity.User();
+                user.setName(request.getName());
+                user.setEmail(request.getEmail());
+                user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+                java.util.Set<com.library.backend.entity.enums.RoleType> roles = new java.util.HashSet<>();
+                roles.add(com.library.backend.entity.enums.RoleType.USER);
+                user.setRoles(roles);
+
+                userRepository.save(user);
+
+                // 4. Generate Token
+                var token = jwtService.generateToken(user);
+                return AuthResponse.builder()
+                                .token(token)
+                                .role("USER")
+                                .build();
         }
 
-        if (!request.getPassword().equals(request.getConfirmPassword())) {
-            throw new RuntimeException("Şifreler uyuşmuyor");
+        public AuthResponse login(LoginRequest request) {
+                System.out.println("--- [DEBUG] Login: " + request.getEmail());
+
+                // 1. Şifre Kontrolü
+                authenticationManager.authenticate(
+                                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+
+                // 2. Kullanıcıyı Bul
+                var user = userRepository.findByEmail(request.getEmail())
+                                .orElseThrow(() -> new RuntimeException("Kullanıcı yok"));
+
+                // 3. Token Üret
+                var token = jwtService.generateToken(user);
+
+                // 4. Rolü Belirle
+                String roleName = user.getRoles().isEmpty() ? "USER" : user.getRoles().iterator().next().name();
+
+                return AuthResponse.builder()
+                                .token(token)
+                                .role(roleName)
+                                .build();
         }
-
-        // 2. Kullanıcıyı oluştur
-        User user = new User();
-        user.setName(request.getName());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.getRoles().add(RoleType.LIBRARIAN); // Varsayılan rol
-
-        // 3. Veritabanına kaydet
-        User savedUser = userRepository.save(user);
-
-        // 4. Direkt token üret (Login çağırmaya gerek yok)
-        String jwtToken = jwtService.generateToken(savedUser);
-
-        return AuthResponse.builder()
-                .token(jwtToken)
-                .user(mapToDTO(savedUser))
-                .build();
-    }
-
-    public AuthResponse login(LoginRequest request) {
-        // 1. Kimlik Doğrulama (Spring Security)
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
-
-        // 2. Kullanıcıyı getir
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı."));
-
-        // 3. Token üret
-        String jwtToken = jwtService.generateToken(user);
-
-        return AuthResponse.builder()
-                .token(jwtToken)
-                .user(mapToDTO(user))
-                .build();
-    }
-
-    private UserDTO mapToDTO(User entity) {
-        UserDTO dto = new UserDTO();
-        dto.setId(entity.getId());
-        dto.setName(entity.getName());
-        dto.setEmail(entity.getEmail());
-        if (!entity.getRoles().isEmpty()) {
-            dto.setRole("ROLE_" + entity.getRoles().iterator().next().name());
-        }
-        return dto;
-    }
 }

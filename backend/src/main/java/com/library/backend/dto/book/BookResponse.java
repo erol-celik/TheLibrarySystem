@@ -1,9 +1,7 @@
 package com.library.backend.dto.book;
 
-import com.library.backend.entity.Tag;
 import com.library.backend.entity.enums.BookType;
 import com.library.backend.entity.enums.RentalStatus;
-import jakarta.persistence.Column;
 import lombok.Data;
 
 import java.math.BigDecimal;

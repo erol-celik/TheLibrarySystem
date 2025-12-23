@@ -4,7 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.library.backend.entity.enums.BookType;
 import com.library.backend.entity.enums.RentalStatus;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
@@ -13,8 +16,11 @@ import java.util.Set;
 
 @Entity
 @Table(name = "books") // veritabanında tablo oluşturur
-@Data // lombok getter setter kurar
-@EqualsAndHashCode(callSuper = true, exclude = { "category", "tags" })
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true, exclude = { "categories", "tags" })
 
 public class Book extends BaseEntity {
 
@@ -27,7 +33,7 @@ public class Book extends BaseEntity {
     @Column(nullable = false)
     private RentalStatus rentalStatus;
 
-    @Column(name = "isbn_no", nullable = false, unique = true)
+    @Column(name = "isbn", nullable = false, unique = true)
     private String isbn; // Barkod/ISBN no
 
     @Column(name = "publisher")
@@ -73,7 +79,8 @@ public class Book extends BaseEntity {
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
-    @ManyToMany(fetch = FetchType.EAGER) // Kitabı çektiğinde kategorisini görmek istersin, burası EAGER olabilir.
+    @JsonIgnore // Prevent Jackson from serializing raw Category entities
+    @ManyToMany(fetch = FetchType.LAZY) // Use LAZY fetch; Service layer explicitly maps to DTO
     @JoinTable(name = "book_categories", joinColumns = @JoinColumn(name = "book_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
     private Set<Category> categories = new HashSet<>();
 

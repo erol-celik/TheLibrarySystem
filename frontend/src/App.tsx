@@ -14,6 +14,7 @@ import { LibrarianPanel } from './components/LibrarianPanel';
 import { BookHistory } from './components/BookHistory';
 import { FeedbackForm } from './components/FeedbackForm';
 import { DonationForm } from './components/DonationForm';
+import { BlindDate } from './components/BlindDate';
 
 // Servisler ve Tipler
 import { AuthService } from './services/AuthService';
@@ -474,6 +475,13 @@ export default function App() {
                       booksBorrowedCount={stats.borrowedCount}
                       totalBooksCount={stats.totalBooks}
                       categories={categories}
+                    />
+                  )}
+
+                  {activeTab === 'blinddate' && (
+                    <BlindDate
+                      onPurchase={() => toast.info("Purchase feature coming soon via Blind Date!")}
+                      onBorrow={handleBorrow}
                     />
                   )}
 

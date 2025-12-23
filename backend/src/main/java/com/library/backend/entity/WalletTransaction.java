@@ -2,13 +2,19 @@ package com.library.backend.entity;
 
 import com.library.backend.entity.enums.TransactionType;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "wallet_transactions")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class WalletTransaction extends BaseEntity {
 

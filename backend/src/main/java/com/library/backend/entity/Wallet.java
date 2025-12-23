@@ -1,14 +1,18 @@
 package com.library.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import java.math.BigDecimal;
-import java.sql.ConnectionBuilder;
 
 @Entity
-@Table(name="wallet")
-@Data
+@Table(name = "wallet")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Wallet {
 
     @Id
@@ -24,6 +28,5 @@ public class Wallet {
     // BALANCE NİTELİĞİ (DECIMAL(10, 2))
     @Column(nullable = false, precision = 10, scale = 2) // Kesin para hesaplaması için BigDecimal kullanılır.
     private BigDecimal balance = BigDecimal.ZERO;
-
 
 }
