@@ -19,34 +19,34 @@ import java.time.LocalDate;
 @EqualsAndHashCode(callSuper = true)
 public class Rental extends BaseEntity {
 
-    // fk-kiralayan kullanıcı
+    // FK - renting user
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    // fk-kiralanan kitap
+    // FK - rented book
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
-    // kiralama zamanı
-    @Column(nullable = false)
+    // Rent start date (set when approved, null until then)
+    @Column(nullable = true)
     private LocalDate rentDate;
 
-    // return zamanı
-    @Column(nullable = false)
+    // Due date (set when approved, null until then)
+    @Column(nullable = true)
     private LocalDate dueDate;
 
-    // NE ZAMAN GETİRDİ? (Başlangıçta NULL olur)
+    // Actual return date (null until returned)
     @Column(name = "return_date", nullable = true)
     private LocalDate returnDate;
 
-    // rentalstatus
+    // Rental status (uses VARCHAR for flexibility with enum changes)
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private RentalStatus status;
 
-    // penalty hesaplama başlangıçta 0
+    // Penalty fee (starts at 0)
     @Column(name = "penalty_fee", nullable = false, precision = 10, scale = 2)
     private BigDecimal penaltyFee = BigDecimal.ZERO;
 }

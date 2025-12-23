@@ -16,13 +16,15 @@ export const UserService = {
                 : 'user',
             status: data.isBanned ? 'blocked' : 'active',
             walletBalance: data.walletBalance || 0,
-            penaltyCount: 0, // Backend DTO'da penaltyScore/penaltyCount yok, geçici olarak 0
-            phone: data.phone || '', // Backend'de tanımlı
+            penaltyCount: 0,
+            phone: data.phone || '',
             address: data.address || '',
             profilePicture: data.avatarUrl || '',
             bio: data.bio || '',
             badge: 'Member',
-            createdDate: new Date().toISOString()
+            createdDate: data.createdDate || new Date().toISOString(),
+            totalBorrowedCount: data.totalBorrowedCount || 0,
+            activeLoanCount: data.activeLoanCount || 0
         };
     },
     // Profil Güncelle
@@ -43,7 +45,7 @@ export const UserService = {
             id: String(resData.id),
             username: resData.name,
             email: resData.email,
-            role: resData.role ? resData.role.replace('ROLE_', '').toLowerCase() : 'user', // Same logic as getMe
+            role: resData.role ? resData.role.replace('ROLE_', '').toLowerCase() : 'user',
             status: resData.isBanned ? 'blocked' : 'active',
             walletBalance: resData.walletBalance || 0,
             penaltyCount: 0,
@@ -52,7 +54,9 @@ export const UserService = {
             profilePicture: resData.avatarUrl || '',
             bio: resData.bio || '',
             badge: 'Member',
-            createdDate: new Date().toISOString()
+            createdDate: resData.createdDate || new Date().toISOString(),
+            totalBorrowedCount: resData.totalBorrowedCount || 0,
+            activeLoanCount: resData.activeLoanCount || 0
         };
     },
 

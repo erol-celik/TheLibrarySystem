@@ -3,10 +3,11 @@ package com.library.backend.entity.enums;
 public enum RentalStatus {
     REQUESTED,
     APPROVED,
-    RENTED,      // <-- Bunu ekle (Genelde scriptler bunu kullanır)
+    RENTED,
+    RETURN_PENDING, // User requested return, waiting for librarian approval
     RETURNED,
     LATE,
     REJECTED,
     AVAILABLE,
-    LOST         // <-- Bunu da eklemen iyi olur (Kaybolan kitaplar için)
+    LOST
 }

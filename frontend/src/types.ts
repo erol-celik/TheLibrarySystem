@@ -38,8 +38,8 @@ export interface Book {
 }
 
 export interface UserAccount {
-  id: string; // Backend ID'si
-  username: string; // İsim (Name)
+  id: string; // Backend ID
+  username: string; // Name
   email: string;
   role: 'user' | 'librarian' | 'admin';
   status: 'active' | 'blocked';
@@ -48,9 +48,11 @@ export interface UserAccount {
   phone: string;
   address: string;
   profilePicture: string;
-  badge: string; // Şimdilik string, backend'den badge sistemi kalktı ama UI istiyor
+  badge: string;
   bio?: string;
   createdDate: string;
+  totalBorrowedCount?: number;
+  activeLoanCount?: number;
 }
 
 export interface BlindDateResponse {

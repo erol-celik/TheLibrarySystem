@@ -11,6 +11,9 @@ interface AccountManagementProps {
   address: string;
   bio?: string;
   isBanned?: boolean;
+  memberSince?: string;
+  totalBorrowedCount?: number;
+  activeLoanCount?: number;
   onUpdateProfile?: (data: { fullName: string; phone: string; address: string; bio: string }) => void;
 }
 
@@ -23,6 +26,9 @@ export function AccountManagement({
   address,
   bio,
   isBanned,
+  memberSince,
+  totalBorrowedCount = 0,
+  activeLoanCount = 0,
   onUpdateProfile
 }: AccountManagementProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -93,8 +99,8 @@ export function AccountManagement({
               }}
               disabled={isBanned}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isBanned
-                  ? 'bg-gray-400 cursor-not-allowed text-gray-200'
-                  : 'bg-purple-600 text-white hover:bg-purple-700'
+                ? 'bg-gray-400 cursor-not-allowed text-gray-200'
+                : 'bg-purple-600 text-white hover:bg-purple-700'
                 }`}
             >
               <Edit2 className="w-4 h-4" />
@@ -228,15 +234,19 @@ export function AccountManagement({
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg p-4">
             <p className="text-gray-600 dark:text-gray-300 mb-1">Books Borrowed</p>
-            <p className="text-purple-600 dark:text-purple-400 font-bold">24 Books</p>
+            <p className="text-purple-600 dark:text-purple-400 font-bold">{totalBorrowedCount} Books</p>
           </div>
           <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4">
             <p className="text-gray-600 dark:text-gray-300 mb-1">Active Loans</p>
-            <p className="text-blue-600 dark:text-blue-400 font-bold">3 Books</p>
+            <p className="text-blue-600 dark:text-blue-400 font-bold">{activeLoanCount} Books</p>
           </div>
           <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-4">
             <p className="text-gray-600 dark:text-gray-300 mb-1">Member Since</p>
-            <p className="text-green-600 dark:text-green-400 font-bold">Jan 2024</p>
+            <p className="text-green-600 dark:text-green-400 font-bold">
+              {memberSince
+                ? new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(new Date(memberSince))
+                : 'N/A'}
+            </p>
           </div>
           <div className={`rounded-lg p-4 ${penaltyCount >= 3 ? 'bg-red-50 dark:bg-red-900/30' : penaltyCount > 0 ? 'bg-yellow-50 dark:bg-yellow-900/30' : 'bg-gray-50 dark:bg-gray-700'
             }`}>
