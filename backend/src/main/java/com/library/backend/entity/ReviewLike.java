@@ -1,14 +1,20 @@
 package com.library.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 
 @Entity
 @Table(name = "review_likes", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"user_id", "review_id"}) // aynı yorumu 1 kere beğenebilir
+        @UniqueConstraint(columnNames = { "user_id", "review_id" }) // aynı yorumu 1 kere beğenebilir
 })
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class ReviewLike extends BaseEntity {
 

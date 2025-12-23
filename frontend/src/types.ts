@@ -7,6 +7,9 @@ export interface Comment {
   text: string;
   rating: number;
   date: string;
+  isSpoiler?: boolean;
+  helpfulCount?: number;
+  userId?: number;
 }
 
 export interface Book {
@@ -45,4 +48,12 @@ export interface UserAccount {
   badge: string; // Şimdilik string, backend'den badge sistemi kalktı ama UI istiyor
   bio?: string;
   createdDate: string;
+}
+
+export interface BlindDateResponse {
+  maskedTitle: string;
+  maskedAuthor: string;
+  description: string;
+  vibeTags: string[]; // backend uses Set<String>, frontend sees array
+  realBook: Book;    // The actual book details populated from backend
 }

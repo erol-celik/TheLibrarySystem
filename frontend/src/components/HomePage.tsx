@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Star, Gift, Sparkles, BookOpen, Zap, Heart, PartyPopper, Search, ChevronRight, Award, Users, TrendingUp, CheckCircle, ArrowRight, Quote, Filter, ShoppingCart, Library } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Star, Gift, Sparkles, BookOpen, Zap, Heart, PartyPopper, Search, ChevronRight, Award, Users, TrendingUp, ArrowRight, Quote, Library } from 'lucide-react';
+import { DashboardService, HomepageStats } from '../services/DashboardService';
 
 interface HomePageProps {
   books?: any[];
@@ -22,19 +23,31 @@ export function HomePage({
   onCategorySelect,
   totalUsers = 0,
   booksBorrowedCount = 0,
-  categories = [] // Default to empty if not provided
+  categories = []
 }: HomePageProps) {
   const [showBlindDate, setShowBlindDate] = useState(false);
   const [revealStep, setRevealStep] = useState(0);
   const [randomBook, setRandomBook] = useState<any>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [stats, setStats] = useState<HomepageStats | null>(null);
 
-  // Helper function to find real book data from props
+  useEffect(() => {
+    loadStats();
+  }, [books]);
+
+  const loadStats = async () => {
+    try {
+      const data = await DashboardService.getPublicStats();
+      setStats(data);
+    } catch (error) {
+      console.error("Failed to load global stats", error);
+    }
+  };
+
   const findRealBook = (id: string) => {
     return books.find(b => b.id === id);
   };
 
-  // Helper function to safely select book
   const handleSelectBook = (bookId: string) => {
     const realBook = findRealBook(bookId);
     if (realBook && onSelectBook) {
@@ -42,23 +55,31 @@ export function HomePage({
     }
   };
 
-  // Calculate average rating for each book
   const calculateAverageRating = (book: any) => {
     if (!book.comments || book.comments.length === 0) return 0;
     const sum = book.comments.reduce((acc: number, comment: any) => acc + comment.rating, 0);
     return sum / book.comments.length;
   };
 
-  // Get top rated books dynamically from real data
+  // --- SAFE GENRE EXTRACTION HELPER ---
+  const getPrimaryGenre = (book: any): string => {
+    if (book.categories && Array.isArray(book.categories) && book.categories.length > 0) {
+      return book.categories[0];
+    }
+    if (book.category) return book.category;
+    if (book.categoryName && Array.isArray(book.categoryName)) return book.categoryName[0];
+    return 'General';
+  };
+
   const topRatedBooks = books
     .map(book => ({
       ...book,
       averageRating: calculateAverageRating(book),
       reviewCount: book.comments?.length || 0
     }))
-    .filter(book => book.averageRating > 0) // Only books with ratings
-    .sort((a, b) => b.averageRating - a.averageRating) // Sort by rating descending
-    .slice(0, 5) // Take top 5
+    .filter(book => book.averageRating > 0)
+    .sort((a, b) => b.averageRating - a.averageRating)
+    .slice(0, 5)
     .map(book => ({
       id: book.id,
       title: book.title,
@@ -66,20 +87,19 @@ export function HomePage({
       rating: parseFloat(book.averageRating.toFixed(1)),
       coverUrl: book.coverUrl,
       price: book.price,
-      genre: book.categoryName[0] || 'General',
+      genre: getPrimaryGenre(book),
       pages: book.pageCount,
       reviewCount: book.reviewCount
     }));
 
-  // Get new arrivals - books with no or few comments (recently added)
   const newArrivals = books
     .map(book => ({
       ...book,
       commentCount: book.comments?.length || 0
     }))
-    .filter(book => book.commentCount <= 2) // Books with 2 or fewer comments are considered "new"
-    .slice(-5) // Take last 5 books from the filtered list
-    .reverse() // Reverse to show newest first
+    .filter(book => book.commentCount <= 2)
+    .slice(-5)
+    .reverse()
     .map(book => ({
       id: book.id,
       title: book.title,
@@ -87,14 +107,11 @@ export function HomePage({
       rating: calculateAverageRating(book) || 0,
       coverUrl: book.coverUrl,
       price: book.price,
-      genre: book.categoryName[0] || 'General',
+      genre: getPrimaryGenre(book),
       pages: book.pageCount,
       isNew: true
     }));
 
-  // Visual assets map for categories (Name -> Assets)
-  // This maps backend category names to icons/images.
-  // Keys should match Backend/Database English names.
   const categoryAssets: Record<string, { icon: any, color: string, image: string }> = {
     'Fantasy': {
       icon: Sparkles,
@@ -127,32 +144,47 @@ export function HomePage({
       image: 'https://images.unsplash.com/photo-1582739010387-0b49ea2adaf6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
     },
     'History': {
-      icon: Library, // Fallback or specific
+      icon: Library,
       color: 'from-yellow-600 to-orange-700',
       image: 'https://images.unsplash.com/photo-1461360370896-922624d12aa1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
     }
   };
 
-  // Helper for default assets
   const defaultAssets = {
     icon: BookOpen,
     color: 'from-indigo-500 to-purple-500',
     image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
   };
 
-  // Process categories with dynamic counts and assets
-  const displayedCategories = categories.map(catName => {
-    const assets = categoryAssets[catName] || defaultAssets;
-    // Calculate count dynamically from all books
-    const count = books.filter(b => b.categoryName && b.categoryName.includes(catName)).length;
-    return {
-      name: catName,
-      count: count,
-      ...assets
-    };
-  });
+  // --- SAFE CATEGORY PROCESSING ---
+  const displayedCategories = Array.from(new Set(categories || []))
+    .filter((cat): cat is string => !!cat && typeof cat === 'string')
+    .map(catName => {
+      const assets = categoryAssets[catName] || defaultAssets;
+      let count: number | null = null;
 
-  // Testimonials
+      if (stats?.categoryDistribution) {
+        if (stats.categoryDistribution[catName] !== undefined) {
+          count = stats.categoryDistribution[catName];
+        } else {
+          // Normalize for case-insensitive lookup
+          const lowerCat = catName.toLowerCase();
+          const foundKey = Object.keys(stats.categoryDistribution).find(k => k.toLowerCase() === lowerCat);
+          if (foundKey) {
+            count = stats.categoryDistribution[foundKey];
+          } else {
+            count = 0;
+          }
+        }
+      }
+
+      return {
+        name: catName,
+        count: count,
+        ...assets
+      };
+    });
+
   const testimonials = [
     {
       name: 'Sarah Johnson',
@@ -191,11 +223,6 @@ export function HomePage({
       setRevealStep(4);
       setIsAnimating(false);
     }, 3500);
-  };
-
-  const handleCloseBlindDate = () => {
-    setShowBlindDate(false);
-    setRevealStep(0);
   };
 
   const scrollToTopRated = () => {
@@ -274,7 +301,7 @@ export function HomePage({
             </div>
             <div>
               <p className="text-purple-100">Total Books</p>
-              <p className="text-3xl">{totalBooksCount.toLocaleString()}</p>
+              <p className="text-3xl">{(stats?.totalBooks || totalBooksCount).toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -285,7 +312,7 @@ export function HomePage({
             </div>
             <div>
               <p className="text-green-100">Active Members</p>
-              <p className="text-3xl">{totalUsers.toLocaleString()}</p>
+              <p className="text-3xl">{(stats?.totalUsers || totalUsers).toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -295,8 +322,8 @@ export function HomePage({
               <TrendingUp className="w-8 h-8" />
             </div>
             <div>
-              <p className="text-blue-100">Books Borrowed</p>
-              <p className="text-3xl">{booksBorrowedCount.toLocaleString()}</p>
+              <p className="text-blue-100">Active Rentals</p>
+              <p className="text-3xl">{(stats?.activeRentals || booksBorrowedCount).toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -311,37 +338,34 @@ export function HomePage({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {displayedCategories.map((category) => {
-            const Icon = category.icon;
-            return (
-              <div
-                key={category.name}
-                className="group relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl transition-all overflow-hidden cursor-pointer transform hover:scale-105"
-                onClick={() => onCategorySelect && onCategorySelect(category.name)}
-              >
-                <div className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity">
-                  <img
-                    src={category.image}
-                    alt={category.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-90`}></div>
-
-                <div className="relative z-10 p-8">
-                  <div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl w-fit mb-4">
-                    <Icon className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-2xl text-white mb-2">{category.name}</h3>
-                  <p className="text-white/80 text-lg mb-6">{category.count} books available</p>
-                  <button className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-xl hover:bg-white/30 transition-all border border-white/30 flex items-center gap-2 group-hover:gap-3">
-                    Explore
-                    <ArrowRight className="w-5 h-5" />
-                  </button>
-                </div>
+          {displayedCategories.map((category) => (
+            <div
+              key={category.name} // UNIQUE KEY HATASI BURADAYDI, ŞİMDİ DÜZELTİLDİ
+              className="group relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl transition-all overflow-hidden cursor-pointer transform hover:scale-105"
+              onClick={() => onCategorySelect && onCategorySelect(category.name)}
+            >
+              <div className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity">
+                <img
+                  src={category.image}
+                  alt={category.name}
+                  className="w-full h-full object-cover"
+                />
               </div>
-            );
-          })}</div>
+              <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-90`}></div>
+
+              <div className="relative z-10 p-8">
+                <div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl w-fit mb-4">
+                  <category.icon className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-2xl text-white mb-2">{category.name}</h3>
+                <p className="text-white/80 text-lg mb-6">{category.count ?? '-'} books available</p>
+                <button className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-xl hover:bg-white/30 transition-all border border-white/30 flex items-center gap-2 group-hover:gap-3">
+                  Explore
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          ))}</div>
       </div>
 
       {/* Featured New Arrivals */}
@@ -646,7 +670,7 @@ export function HomePage({
                 </div>
                 <div>
                   <p className="text-blue-100">Available Books</p>
-                  <p className="text-3xl text-white">{books.length}</p>
+                  <p className="text-3xl text-white">{(stats?.totalBooks || totalBooksCount).toLocaleString()}</p>
                 </div>
               </div>
               <p className="text-white/80">
@@ -676,7 +700,7 @@ export function HomePage({
                 </div>
                 <div>
                   <p className="text-green-100">Total Reads</p>
-                  <p className="text-3xl text-white">{booksBorrowedCount}</p>
+                  <p className="text-3xl text-white">{(stats?.activeRentals || booksBorrowedCount).toLocaleString()}</p>
                 </div>
               </div>
               <p className="text-white/80">

@@ -244,9 +244,11 @@ export function BookCatalog({
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
                   {/* Price Tag */}
-                  <div className="absolute top-4 right-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-full shadow-lg">
-                    ${book.price.toFixed(2)}
-                  </div>
+                  {book.bookType !== 'PHYSICAL' && (
+                    <div className="absolute top-4 right-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-full shadow-lg">
+                      ${book.price.toFixed(2)}
+                    </div>
+                  )}
 
                   {/* Status Badge */}
                   {book.isBorrowed ? (
@@ -334,7 +336,9 @@ export function BookCatalog({
                         <p className="text-gray-600 dark:text-gray-400">by {book.author}</p>
                       </div>
                       <div className="flex flex-col items-end gap-2 ml-4">
-                        <span className="text-2xl text-purple-600 dark:text-purple-400">${book.price.toFixed(2)}</span>
+                        {book.bookType !== 'PHYSICAL' && (
+                          <span className="text-2xl text-purple-600 dark:text-purple-400">${book.price.toFixed(2)}</span>
+                        )}
                         {avgRating > 0 && (
                           <div className="flex items-center gap-1 bg-yellow-50 dark:bg-yellow-900/30 px-3 py-1 rounded-full">
                             <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
@@ -383,8 +387,8 @@ export function BookCatalog({
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 0 || totalPages === 0}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${currentPage === 0 || totalPages === 0
-              ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 shadow-sm'
+            ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 shadow-sm'
             }`}
         >
           <ChevronLeft className="w-5 h-5" />
@@ -401,8 +405,8 @@ export function BookCatalog({
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages - 1 || totalPages === 0}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${currentPage >= totalPages - 1 || totalPages === 0
-              ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 shadow-sm'
+            ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 shadow-sm'
             }`}
         >
           <span>Next</span>

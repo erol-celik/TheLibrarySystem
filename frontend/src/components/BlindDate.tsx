@@ -1,64 +1,69 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Shuffle, Heart, BookOpen, Package, DollarSign, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface Book {
-  id: string;
-  title: string;
-  author: string;
-  categoryName: string[];
-  tags: string[];
-  description: string;
-  price: number;
-  pageCount: number;
-  publicationYear: number;
-  coverUrl: string;
-  bookType: string;
-  publisher: string;
-}
+import { BookService } from '../services/BookService';
+import { Book, BlindDateResponse } from '../types';
 
 interface BlindDateProps {
-  books: Book[];
+  books?: Book[]; // Optional now, or removed if not used
   onPurchase: (bookId: string) => void;
   onBorrow?: (bookId: string) => void;
 }
 
-export function BlindDate({ books, onPurchase, onBorrow }: BlindDateProps) {
-  const [currentBook, setCurrentBook] = useState<Book | null>(null);
+export function BlindDate({ onPurchase, onBorrow }: BlindDateProps) {
+  const [blindDateData, setBlindDateData] = useState<BlindDateResponse | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [allTags, setAllTags] = useState<string[]>([]);
 
-  // Get all unique tags from books
-  const allTags = Array.from(new Set(books.flatMap(book => book.tags || [])));
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const tags = await BookService.getAllTags();
+        setAllTags(tags);
+      } catch (error) {
+        console.error("Failed to fetch tags for blind date:", error);
+      }
+    };
+    fetchTags();
+  }, []);
 
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
+    setSelectedTags(prev =>
+      prev.includes(tag)
         ? prev.filter(t => t !== tag)
         : [...prev, tag]
     );
-    setCurrentBook(null);
-    setIsRevealed(false);
   };
+  const shuffleBook = async () => {
+    setIsLoading(true);
+    setBlindDateData(null);
+    setIsRevealed(false);
 
-  const shuffleBook = () => {
-    // Filter books based on selected tags
-    let availableBooks = books;
-    if (selectedTags.length > 0) {
-      availableBooks = books.filter(book => 
-        book.tags && book.tags.some(tag => selectedTags.includes(tag))
-      );
-    }
-    
-    // Exclude current book
-    availableBooks = availableBooks.filter(b => b.id !== currentBook?.id);
-    
-    if (availableBooks.length > 0) {
-      const randomIndex = Math.floor(Math.random() * availableBooks.length);
-      setCurrentBook(availableBooks[randomIndex]);
-      setIsRevealed(false);
-    } else {
-      toast.error('No books available with selected tags. Please adjust your tag selection.');
+    try {
+      // Pick a random tag from selected tags or all tags if none selected
+      let tagToUse = '';
+      if (selectedTags.length > 0) {
+        const randomIndex = Math.floor(Math.random() * selectedTags.length);
+        tagToUse = selectedTags[randomIndex];
+      } else if (allTags.length > 0) {
+        const randomIndex = Math.floor(Math.random() * allTags.length);
+        tagToUse = allTags[randomIndex];
+      } else {
+        toast.error('No tags available to search.');
+        setIsLoading(false);
+        return;
+      }
+
+      const data = await BookService.getBlindDateBook(tagToUse);
+      setBlindDateData(data);
+    } catch (error) {
+      console.error("Blind date error:", error);
+      toast.error('Failed to find a book. Please try again or select different tags.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -67,37 +72,19 @@ export function BlindDate({ books, onPurchase, onBorrow }: BlindDateProps) {
   };
 
   const handlePurchase = () => {
-    if (currentBook) {
-      onPurchase(currentBook.id);
+    if (blindDateData?.realBook) {
+      onPurchase(blindDateData.realBook.id);
     }
   };
 
   const handleBorrow = () => {
-    if (currentBook && onBorrow) {
-      onBorrow(currentBook.id);
+    if (blindDateData?.realBook && onBorrow) {
+      onBorrow(blindDateData.realBook.id);
     }
   };
 
   const handleNotYourType = () => {
-    // Filter books based on selected tags
-    let availableBooks = books;
-    if (selectedTags.length > 0) {
-      availableBooks = books.filter(book => 
-        book.tags && book.tags.some(tag => selectedTags.includes(tag))
-      );
-    }
-    
-    // Exclude current book
-    availableBooks = availableBooks.filter(b => b.id !== currentBook?.id);
-    
-    if (availableBooks.length > 0) {
-      const randomIndex = Math.floor(Math.random() * availableBooks.length);
-      setCurrentBook(availableBooks[randomIndex]);
-      setIsRevealed(true); // Automatically reveal the new book
-      toast.info('Finding you a new match...');
-    } else {
-      toast.error('No books available with selected tags. Please adjust your tag selection.');
-    }
+    shuffleBook();
   };
 
   return (
@@ -134,11 +121,10 @@ export function BlindDate({ books, onPurchase, onBorrow }: BlindDateProps) {
             <button
               key={tag}
               onClick={() => toggleTag(tag)}
-              className={`px-4 py-2 rounded-xl border-2 transition-all transform hover:scale-105 ${
-                selectedTags.includes(tag)
-                  ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white border-purple-600 shadow-lg'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500'
-              }`}
+              className={`px-4 py-2 rounded-xl border-2 transition-all transform hover:scale-105 ${selectedTags.includes(tag)
+                ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white border-purple-600 shadow-lg'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500'
+                }`}
             >
               {tag}
             </button>
@@ -168,12 +154,13 @@ export function BlindDate({ books, onPurchase, onBorrow }: BlindDateProps) {
       <div className="flex gap-4">
         <button
           onClick={shuffleBook}
-          className="flex-1 bg-purple-600 text-white py-4 px-6 rounded-xl hover:bg-purple-700 transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-xl"
+          disabled={isLoading}
+          className="flex-1 bg-purple-600 text-white py-4 px-6 rounded-xl hover:bg-purple-700 transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          <Shuffle className="w-6 h-6" />
-          <span>Shuffle & Find Your Match</span>
+          <Shuffle className={`w-6 h-6 ${isLoading ? 'animate-spin' : ''}`} />
+          <span>{isLoading ? 'Finding Match...' : 'Shuffle & Find Your Match'}</span>
         </button>
-        {currentBook && !isRevealed && (
+        {blindDateData && !isRevealed && (
           <button
             onClick={revealBook}
             className="flex-1 bg-pink-600 text-white py-4 px-6 rounded-xl hover:bg-pink-700 transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-xl"
@@ -185,64 +172,56 @@ export function BlindDate({ books, onPurchase, onBorrow }: BlindDateProps) {
       </div>
 
       {/* Book Display */}
-      {currentBook && (
+      {blindDateData && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
           {!isRevealed ? (
             <div className="text-center py-12">
               <div className="w-64 h-80 mx-auto bg-gradient-to-br from-pink-500 to-purple-600 rounded-2xl shadow-2xl flex items-center justify-center mb-6 animate-pulse">
                 <Package className="w-24 h-24 text-white" />
               </div>
-              <h3 className="text-gray-900 dark:text-white mb-2">Mystery Book Awaits!</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Your perfect match is wrapped and ready. Click reveal to unwrap your literary surprise!
+              <h3 className="text-3xl text-gray-900 dark:text-white mb-2 font-serif">{blindDateData.maskedTitle}</h3>
+              <p className="text-xl text-gray-600 dark:text-gray-400 mb-6 italic">by {blindDateData.maskedAuthor}</p>
+
+              <div className="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-xl max-w-2xl mx-auto mb-8">
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
+                  &quot;{blindDateData.description}&quot;
+                </p>
+              </div>
+
+              {/* Vibe Tags */}
+              {blindDateData.vibeTags && blindDateData.vibeTags.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-3 mb-8">
+                  {blindDateData.vibeTags.map(tag => (
+                    <span key={tag} className="px-4 py-2 bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 rounded-full text-sm font-medium flex items-center gap-2">
+                      <Tag className="w-4 h-4" />
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <p className="text-gray-500 dark:text-gray-500 animate-bounce">
+                Click reveal to unwrap your literary surprise!
               </p>
-              <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
-                <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg p-4">
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">Pages</p>
-                  <p className="text-purple-600 dark:text-purple-400">{currentBook.pageCount}</p>
-                </div>
-                <div className="bg-pink-50 dark:bg-pink-900/30 rounded-lg p-4">
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">Year</p>
-                  <p className="text-pink-600 dark:text-pink-400">{currentBook.publicationYear}</p>
-                </div>
-                <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4">
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">Price</p>
-                  <p className="text-blue-600 dark:text-blue-400">${currentBook.price}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 max-w-md mx-auto mt-4">
-                <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-4">
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">Type</p>
-                  <p className="text-green-600 dark:text-green-400">{currentBook.bookType}</p>
-                </div>
-                <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-4">
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">Categories</p>
-                  <p className="text-orange-600 dark:text-orange-400">{currentBook.categoryName.length}</p>
-                </div>
-              </div>
-              <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-lg p-4 max-w-md mx-auto mt-4">
-                <p className="text-gray-600 dark:text-gray-400 mb-1">Publisher</p>
-                <p className="text-indigo-600 dark:text-indigo-400">{currentBook.publisher}</p>
-              </div>
             </div>
           ) : (
             <div>
               <div className="grid md:grid-cols-2 gap-8 mb-6">
                 <div>
                   <img
-                    src={currentBook.coverUrl}
-                    alt={currentBook.title}
+                    src={blindDateData.realBook.coverUrl}
+                    alt={blindDateData.realBook.title}
                     className="w-full h-96 object-cover rounded-xl shadow-lg"
                   />
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-gray-900 dark:text-white mb-2">{currentBook.title}</h3>
-                    <p className="text-gray-600 dark:text-gray-400 mb-4">by {currentBook.author}</p>
+                    <h3 className="text-gray-900 dark:text-white mb-2">{blindDateData.realBook.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">by {blindDateData.realBook.author}</p>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    {currentBook.categoryName.map((category, index) => (
+                    {blindDateData.realBook.categoryName.map((category, index) => (
                       <span
                         key={index}
                         className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full"
@@ -252,7 +231,7 @@ export function BlindDate({ books, onPurchase, onBorrow }: BlindDateProps) {
                     ))}
                   </div>
 
-                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{currentBook.description}</p>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{blindDateData.realBook.description}</p>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
@@ -260,11 +239,11 @@ export function BlindDate({ books, onPurchase, onBorrow }: BlindDateProps) {
                         <BookOpen className="w-4 h-4" />
                         <span>Pages</span>
                       </div>
-                      <p className="text-gray-900 dark:text-white">{currentBook.pageCount} pages</p>
+                      <p className="text-gray-900 dark:text-white">{blindDateData.realBook.pageCount} pages</p>
                     </div>
                     <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                       <p className="text-gray-600 dark:text-gray-400 mb-1">Published</p>
-                      <p className="text-gray-900 dark:text-white">{currentBook.publicationYear}</p>
+                      <p className="text-gray-900 dark:text-white">{blindDateData.realBook.publicationYear}</p>
                     </div>
                   </div>
 
@@ -272,7 +251,7 @@ export function BlindDate({ books, onPurchase, onBorrow }: BlindDateProps) {
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <p className="text-gray-600 dark:text-gray-400 mb-1">Price</p>
-                        <p className="text-gray-900 dark:text-white">${currentBook.price.toFixed(2)}</p>
+                        <p className="text-gray-900 dark:text-white">${blindDateData.realBook.price.toFixed(2)}</p>
                       </div>
                       <DollarSign className="w-8 h-8 text-purple-600 dark:text-purple-400" />
                     </div>
@@ -308,7 +287,7 @@ export function BlindDate({ books, onPurchase, onBorrow }: BlindDateProps) {
         </div>
       )}
 
-      {!currentBook && (
+      {!blindDateData && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-12 text-center">
           <Heart className="w-24 h-24 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
           <h3 className="text-gray-900 dark:text-white mb-2">Ready for Romance?</h3>

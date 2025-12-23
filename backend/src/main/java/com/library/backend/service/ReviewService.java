@@ -82,6 +82,7 @@ public class ReviewService {
         updateBookRating(book);
         reviewRepository.save(review);
     }
+
     private void updateBookRating(Book book) {
         // O kitaba ait tüm yorumları çek
         List<Review> reviews = reviewRepository.findAllByBookId(book.getId());
@@ -104,6 +105,7 @@ public class ReviewService {
 
         bookRepository.save(book);
     }
+
     @Transactional
     // --- YENİ: yorum güncelleme servisi ---
     public void updateReview(String userEmail, Long reviewId, ReviewRequest request) {
@@ -161,12 +163,17 @@ public class ReviewService {
 
     // güncellenmiş filtre metodu
     private String filterProfanity(String text) {
-        if (text == null) return "";
+        if (text == null)
+            return "";
         String filtered = text;
         // dosyadan okunan listeyi kullan
         for (String word : badWords) {
             filtered = filtered.replaceAll("(?i)" + word, "***");
         }
         return filtered;
+    }
+
+    public List<Review> getReviewsByBookId(Long bookId) {
+        return reviewRepository.findReviewsByBookId(bookId);
     }
 }

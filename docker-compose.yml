@@ -10,13 +10,12 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - ./mysql-data:/var/lib/mysql
-      - ./data.sql:/docker-entrypoint-initdb.d/init.sql
+      # DÜZELTME: Klasör yerine Volume kullanıyoruz ve ismini değiştirdik.
+      # Bu sayede Docker eski bozuk veriyi bulamayıp mecburen sıfırdan kuracak.
+      - mysql_data_FINAL_FIX:/var/lib/mysql
     networks:
       - library-network
     command: --default-authentication-plugin=mysql_native_password
-    # --- YENİ EKLENEN KISIM: HEALTHCHECK ---
-    # MySQL'e her 10 saniyede bir ping atar. Cevap alamazsa 'unhealthy' der.
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
@@ -30,17 +29,15 @@ services:
     ports:
       - "8080:8080"
     environment:
-      # 'mysqldb' docker içindeki hostname'dir.
       SPRING_DATASOURCE_URL: jdbc:mysql://mysqldb:3306/library_db_v2?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
     networks:
       - library-network
-    # --- DEĞİŞTİRİLEN KISIM ---
     depends_on:
       mysqldb:
-        condition: service_healthy # MySQL "Ben hazırım" diyene kadar Backend başlamaz.
+        condition: service_healthy
 
   # 3. FRONTEND SERVİSİ
   frontend:
@@ -57,6 +54,12 @@ services:
     depends_on:
       - backend
 
+# AĞ AYARLARI
 networks:
   library-network:
     driver: bridge
+
+# VOLUME AYARLARI (YENİ)
+volumes:
+  mysql_data_FINAL_FIX:
+    driver: local

@@ -38,7 +38,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/api/books/**", "/api/categories/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/books/**", "/api/categories/**", "/api/tags").permitAll()
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/librarian/**").hasAnyAuthority("ROLE_LIBRARIAN", "ROLE_ADMIN")
                         .anyRequest().authenticated())
@@ -82,8 +82,17 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
+    /*
+     * @Bean
+     * public PasswordEncoder passwordEncoder() {
+     * return new BCryptPasswordEncoder();
+     * }
+     */
+
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        // Deprecated (kullanımdan kalktı) uyarısı verecek. ALDIRIŞ ETME.
+        // Ödev ve test için hayat kurtarıcıdır.
+        return org.springframework.security.crypto.password.NoOpPasswordEncoder.getInstance();
     }
 }

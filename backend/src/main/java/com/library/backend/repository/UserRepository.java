@@ -13,6 +13,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Özel sorgular buraya eklenecek (Örn: email ile bul)
 
     Optional<User> findByEmail(String email);
+
+    boolean existsByEmail(String email);
+
     List<User> findAllByIsBanned(Boolean isBanned);
+
     List<User> findAll();
 }
