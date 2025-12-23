@@ -18,5 +18,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findAllByIsBanned(Boolean isBanned);
 
+    List<User> findAllByRolesContaining(com.library.backend.entity.enums.RoleType role);
+
     List<User> findAll();
 }

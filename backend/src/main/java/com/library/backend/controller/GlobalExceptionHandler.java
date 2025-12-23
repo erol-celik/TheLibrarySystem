@@ -18,7 +18,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<String> handleLocked() {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("HATA: Hesap kilitlenmiş (Banlısın)!");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body("Access denied: Your account has been banned. Please contact the administrator.");
     }
 
     @ExceptionHandler(DisabledException.class)

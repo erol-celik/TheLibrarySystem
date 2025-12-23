@@ -35,6 +35,11 @@ public class DonationService {
         donation.setStatus(DonationStatus.PENDING);
 
         donationRepository.save(donation);
+
+        // Notify Librarians
+        String message = String.format("New donation request from %s for book '%s'.", user.getName(),
+                donation.getBookTitle());
+        notificationService.sendNotificationToRole(com.library.backend.entity.enums.RoleType.LIBRARIAN, message);
     }
 
     // 2. Bekleyen Bağışları Getir (LIBRARIAN)

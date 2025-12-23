@@ -21,6 +21,7 @@ public class WalletService {
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository transactionRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     // 1. Para Yükleme (Kullanıcı yapar)
     @Transactional
@@ -41,6 +42,15 @@ public class WalletService {
         userRepository.save(user);
         // Log at (Dekont)
         saveTransaction(wallet, TransactionType.DEPOSIT, amount, null);
+
+        // Notify User
+        String userMsg = String.format("Successfully deposited $%s to your wallet. Current balance: $%s.", amount,
+                wallet.getBalance());
+        notificationService.sendSystemNotification(user, userMsg);
+
+        // Notify Admin
+        String adminMsg = String.format("A deposit of $%s was made by user %s.", amount, user.getEmail());
+        notificationService.sendNotificationToRole(com.library.backend.entity.enums.RoleType.ADMIN, adminMsg);
 
         return wallet.getBalance();
     }
@@ -70,6 +80,13 @@ public class WalletService {
         trx.setAmount(amount);
         trx.setRelatedEntityId(relatedId);
         transactionRepository.save(trx);
+
+        // Notify User of transaction (unless it's a deposit which is handled
+        // separately)
+        if (type != TransactionType.DEPOSIT) {
+            String message = String.format("Transaction alert: %s of $%s recorded.", type.name(), amount);
+            notificationService.sendSystemNotification(wallet.getUser(), message);
+        }
     }
 
     // Yardımcı: Cüzdan Oluşturma
@@ -93,9 +110,10 @@ public class WalletService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı."));
 
-        Wallet wallet = walletRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Cüzdan bulunamadı."));
-
-        return transactionRepository.findByWalletIdOrderByCreatedDateDesc(wallet.getId());
+        // If wallet doesn't exist, return empty list instead of error
+        // A missing wallet simply means no transactions have occurred yet
+        return walletRepository.findByUser(user)
+                .map(wallet -> transactionRepository.findByWalletIdOrderByCreatedDateDesc(wallet.getId()))
+                .orElse(java.util.Collections.emptyList());
     }
 }

@@ -22,6 +22,7 @@ public class BookResponse {
     private RentalStatus status;
     private BigDecimal price;
     private String ebookFilePath;
+    private String pdfUrl;
     private String imageUrl; // Kapak resmi için
     private Set<String> categories;
     private boolean isEditorsPick; // Editörün seçimi mi?

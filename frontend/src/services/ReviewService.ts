@@ -46,5 +46,15 @@ export const ReviewService = {
         // but BookDetailModal has onDeleteComment prop.
         // I will assume for now we might leave delete as is or implementing if needed.
         // Actually SocialController didn't show DELETE. I will skip DELETE implementation in Service for now unless I find it.
+    },
+
+    // --- ADMIN METHODS ---
+    getAllReviewsForAdmin: async (): Promise<any[]> => {
+        const response = await api.get('/reviews/admin/all');
+        return response.data;
+    },
+
+    adminDeleteReview: async (reviewId: string): Promise<void> => {
+        await api.delete(`/reviews/admin/${reviewId}`);
     }
 };

@@ -4,6 +4,7 @@ import com.library.backend.entity.Notification;
 import com.library.backend.entity.User;
 import com.library.backend.repository.NotificationRepository;
 import com.library.backend.repository.UserRepository;
+import com.library.backend.entity.enums.RoleType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -112,10 +113,7 @@ public class NotificationService {
     public void sendSystemNotification(User recipient, String message) {
         // Not: Sistemin kendisini temsil eden kullanıcının ID'si (örneğin 1L)
         // varsayılır.
-        // Bu ID'nin veritabanında mevcut bir Admin/Librarian veya özel bir Sistem
-        // kullanıcısı olması gerekir.
-
-        User sender = userRepository.findById(1L) // System/Admin Kullanıcı ID'si varsayımı
+        User sender = userRepository.findById(1L)
                 .orElseThrow(() -> new RuntimeException("System user (ID=1) not found for notification sender."));
 
         Notification notification = new Notification();
@@ -125,6 +123,14 @@ public class NotificationService {
         notification.setRead(false);
 
         notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void sendNotificationToRole(RoleType role, String message) {
+        List<User> recipients = userRepository.findAllByRolesContaining(role);
+        for (User recipient : recipients) {
+            sendSystemNotification(recipient, message);
+        }
     }
 
     @Transactional

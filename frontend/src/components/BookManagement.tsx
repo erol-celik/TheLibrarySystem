@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Plus, X, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner@2.0.3";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { BookService } from "../services/BookService";
 
 interface Book {
   id: string;
@@ -51,7 +52,7 @@ export function BookManagement({
   const [newBook, setNewBook] = useState({
     title: "",
     author: "",
-    bookType: "Hardcover",
+    bookType: "PHYSICAL",
     categoryName: "",
     tags: "",
     description: "",
@@ -72,46 +73,80 @@ export function BookManagement({
     }
   }, [editingBook, showAddForm]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Convert comma-separated strings to arrays
     const categoriesArray = newBook.categoryName
       .split(",")
+      // Only keep non-empty trimmed strings
       .map((c) => c.trim())
-      .filter((c) => c);
+      .filter((c) => c.length > 0);
+
     const tagsArray = newBook.tags
       .split(",")
       .map((t) => t.trim())
-      .filter((t) => t);
-    
-    onAddBook({
-      ...newBook,
-      categoryName: categoriesArray,
-      tags: tagsArray,
-      pageCount: parseInt(newBook.pageCount),
-      price: parseFloat(newBook.price),
+      .filter((t) => t.length > 0);
+
+    // Construct the payload matching AddBookRequest DTO
+    // Note: DTO expects 'isbn' but frontend state uses 'isbnNo'
+    // DTO expects 'imageUrl' but frontend state uses 'coverUrl'
+    // DTO expects 'totalStock' but frontend state uses 'stock'
+    const payload = {
+      title: newBook.title,
+      author: newBook.author,
+      description: newBook.description,
+      isbn: newBook.isbnNo,
+      publisher: newBook.publisher,
       publicationYear: parseInt(newBook.publicationYear),
-      stock: parseInt(newBook.stock),
-      comments: [],
-    });
-    
-    setNewBook({
-      title: "",
-      author: "",
-      bookType: "Hardcover",
-      categoryName: "",
-      tags: "",
-      description: "",
-      isbnNo: "",
-      pageCount: "",
-      price: "",
-      publicationYear: "",
-      publisher: "",
-      coverUrl: "",
-      ebookFilePath: "",
-      stock: "",
-    });
-    setShowAddForm(false);
-    toast.success("Book added successfully!");
+      pageCount: parseInt(newBook.pageCount),
+      totalStock: parseInt(newBook.stock),
+      bookType: newBook.bookType, // "PHYSICAL", "DIGITAL", "HYBRID"
+      price: parseFloat(newBook.price),
+      ebookFilePath: newBook.ebookFilePath,
+      imageUrl: newBook.coverUrl,
+      categories: categoriesArray, // backend expects Set<String> which maps from array
+      tags: tagsArray
+    };
+
+    try {
+      // Call the service which hits /api/admin/add-book
+      const addedBook = await BookService.addBook(payload);
+
+      // Notify parent component
+      onAddBook({
+        // Map back the response to the internal Book type expected by frontend components if different
+        // The service.addBook returns a mapped Book, so we can use it directly? 
+        // BookManagementProps expects Omit<Book, ...> but we can likely just pass the full object 
+        // if the parent handles it safely, or destructure.
+        // Let's use the returned book which is already mapped by BookService
+        ...addedBook
+      });
+
+      toast.success("Book added successfully!");
+
+      // Reset form
+      setNewBook({
+        title: "",
+        author: "",
+        bookType: "PHYSICAL", // Reset to default enum
+        categoryName: "",
+        tags: "",
+        description: "",
+        isbnNo: "",
+        pageCount: "",
+        price: "",
+        publicationYear: "",
+        publisher: "",
+        coverUrl: "",
+        ebookFilePath: "",
+        stock: "",
+      });
+      setShowAddForm(false);
+    } catch (error: any) {
+      console.error("Failed to add book:", error);
+      toast.error(error.response?.data?.message || "Failed to add book. Please check fields.");
+    }
   };
 
   const handleEditSubmit = (e: React.FormEvent) => {
@@ -126,9 +161,17 @@ export function BookManagement({
       .split(",")
       .map((t) => t.trim())
       .filter((t) => t);
-    
+
+    // Validate that newBook.bookType is one of the allowed Enum values
+    // Because sometimes it might be "Hardcover" if not properly initialized?
+    // Let's force it to be one of PHYSICAL, DIGITAL, HYBRID
+    // But since select only offers these options, it should be fine IF initialized correctly.
+    // The previous fix to startEditing/cancelEdit should cover initialization.
+
     onEditBook(editingBook.id, {
       ...newBook,
+      // Ensure bookType is uppercase just in case
+      bookType: newBook.bookType || "PHYSICAL",
       categoryName: categoriesArray,
       tags: tagsArray,
       pageCount: parseInt(newBook.pageCount),
@@ -137,12 +180,12 @@ export function BookManagement({
       stock: parseInt(newBook.stock),
       comments: editingBook.comments || [],
     });
-    
+
     setEditingBook(null);
     setNewBook({
       title: "",
       author: "",
-      bookType: "Hardcover",
+      bookType: "PHYSICAL",
       categoryName: "",
       tags: "",
       description: "",
@@ -184,7 +227,7 @@ export function BookManagement({
     setNewBook({
       title: "",
       author: "",
-      bookType: "Hardcover",
+      bookType: "PHYSICAL",
       categoryName: "",
       tags: "",
       description: "",
@@ -291,10 +334,9 @@ export function BookManagement({
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   required
                 >
-                  <option value="Hardcover">Hardcover</option>
-                  <option value="Paperback">Paperback</option>
-                  <option value="E-Book">E-Book</option>
-                  <option value="Audiobook">Audiobook</option>
+                  <option value="PHYSICAL">Physical</option>
+                  <option value="DIGITAL">Digital</option>
+                  <option value="HYBRID">Hybrid</option>
                 </select>
               </div>
 
@@ -521,11 +563,10 @@ export function BookManagement({
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`px-3 py-1 rounded-full text-sm ${
-                          book.isBorrowed
-                            ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                            : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                        }`}
+                        className={`px-3 py-1 rounded-full text-sm ${book.isBorrowed
+                          ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                          : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                          }`}
                       >
                         {book.isBorrowed
                           ? "Borrowed"
@@ -544,11 +585,10 @@ export function BookManagement({
                         <button
                           onClick={() => handleRemove(book)}
                           disabled={book.isBorrowed}
-                          className={`text-white px-3 py-2 rounded-md transition-colors text-sm ${
-                            book.isBorrowed
-                              ? "bg-gray-400 cursor-not-allowed"
-                              : "bg-red-600 hover:bg-red-700"
-                          }`}
+                          className={`text-white px-3 py-2 rounded-md transition-colors text-sm ${book.isBorrowed
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-red-600 hover:bg-red-700"
+                            }`}
                         >
                           Remove
                         </button>

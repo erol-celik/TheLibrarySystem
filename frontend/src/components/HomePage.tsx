@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Star, Gift, Sparkles, BookOpen, Zap, Heart, PartyPopper, Search, ChevronRight, Award, Users, TrendingUp, ArrowRight, Quote, Library } from 'lucide-react';
 import { DashboardService, HomepageStats } from '../services/DashboardService';
+import { getCategoryCards } from '../utils/categoryAssets';
 
 interface HomePageProps {
   books?: any[];
@@ -112,78 +113,7 @@ export function HomePage({
       isNew: true
     }));
 
-  const categoryAssets: Record<string, { icon: any, color: string, image: string }> = {
-    'Fantasy': {
-      icon: Sparkles,
-      color: 'from-purple-500 to-pink-500',
-      image: 'https://images.unsplash.com/photo-1614544048536-0d28caf77f41?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
-    },
-    'Science Fiction': {
-      icon: Zap,
-      color: 'from-blue-500 to-cyan-500',
-      image: 'https://images.unsplash.com/photo-1635698054698-1eaf72c5a894?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
-    },
-    'Mystery': {
-      icon: Search,
-      color: 'from-gray-700 to-gray-900',
-      image: 'https://images.unsplash.com/photo-1698954634383-eba274a1b1c7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
-    },
-    'Romance': {
-      icon: Heart,
-      color: 'from-pink-500 to-rose-500',
-      image: 'https://images.unsplash.com/photo-1711185901354-73cb6b666c32?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
-    },
-    'Non-Fiction': {
-      icon: BookOpen,
-      color: 'from-green-500 to-emerald-500',
-      image: 'https://images.unsplash.com/photo-1658842042844-eeb5ad17b7d3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
-    },
-    'Biography': {
-      icon: Award,
-      color: 'from-orange-500 to-amber-500',
-      image: 'https://images.unsplash.com/photo-1582739010387-0b49ea2adaf6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
-    },
-    'History': {
-      icon: Library,
-      color: 'from-yellow-600 to-orange-700',
-      image: 'https://images.unsplash.com/photo-1461360370896-922624d12aa1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
-    }
-  };
-
-  const defaultAssets = {
-    icon: BookOpen,
-    color: 'from-indigo-500 to-purple-500',
-    image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?crop=entropy&cs=tinysrgb&fit=max&fm=jpg'
-  };
-
-  // --- SAFE CATEGORY PROCESSING ---
-  const displayedCategories = Array.from(new Set(categories || []))
-    .filter((cat): cat is string => !!cat && typeof cat === 'string')
-    .map(catName => {
-      const assets = categoryAssets[catName] || defaultAssets;
-      let count: number | null = null;
-
-      if (stats?.categoryDistribution) {
-        if (stats.categoryDistribution[catName] !== undefined) {
-          count = stats.categoryDistribution[catName];
-        } else {
-          // Normalize for case-insensitive lookup
-          const lowerCat = catName.toLowerCase();
-          const foundKey = Object.keys(stats.categoryDistribution).find(k => k.toLowerCase() === lowerCat);
-          if (foundKey) {
-            count = stats.categoryDistribution[foundKey];
-          } else {
-            count = 0;
-          }
-        }
-      }
-
-      return {
-        name: catName,
-        count: count,
-        ...assets
-      };
-    });
+  const displayedCategories = getCategoryCards(categories, stats);
 
   const testimonials = [
     {
@@ -337,36 +267,52 @@ export function HomePage({
           <p className="text-gray-600 dark:text-gray-300 text-lg mt-2">Explore our diverse collection</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {displayedCategories.map((category) => (
             <div
-              key={category.name} // UNIQUE KEY HATASI BURADAYDI, ŞİMDİ DÜZELTİLDİ
-              className="group relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl transition-all overflow-hidden cursor-pointer transform hover:scale-105"
+              key={category.name}
+              className="group relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer transform hover:scale-105 hover:-translate-y-2"
               onClick={() => onCategorySelect && onCategorySelect(category.name)}
+              style={{ minHeight: '220px' }}
             >
-              <div className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity">
+              {/* Background Image with Overlay */}
+              <div className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity duration-300">
                 <img
                   src={category.image}
                   alt={category.name}
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-90`}></div>
 
-              <div className="relative z-10 p-8">
-                <div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl w-fit mb-4">
-                  <category.icon className="w-8 h-8 text-white" />
+              {/* Gradient Overlay */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-90 group-hover:opacity-95 transition-opacity duration-300`}></div>
+
+              {/* Glow Effect on Hover */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className={`absolute inset-0 bg-gradient-to-br ${category.color} blur-xl`}></div>
+              </div>
+
+              {/* Content */}
+              <div className="relative z-10 p-8 h-full flex flex-col justify-between">
+                <div>
+                  <div className="bg-white/20 backdrop-blur-md p-4 rounded-2xl w-fit mb-4 border border-white/30 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <category.icon className="w-8 h-8 text-white drop-shadow-lg" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2 drop-shadow-md">{category.name}</h3>
+                  <p className="text-white/90 text-lg mb-6 font-medium">
+                    {category.count ?? '-'} books available
+                  </p>
                 </div>
-                <h3 className="text-2xl text-white mb-2">{category.name}</h3>
-                <p className="text-white/80 text-lg mb-6">{category.count ?? '-'} books available</p>
-                <button className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-xl hover:bg-white/30 transition-all border border-white/30 flex items-center gap-2 group-hover:gap-3">
+
+                <button className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-xl hover:bg-white/30 transition-all border border-white/30 flex items-center gap-2 group-hover:gap-3 shadow-lg font-medium">
                   Explore
-                  <ArrowRight className="w-5 h-5" />
+                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                 </button>
               </div>
             </div>
           ))}</div>
       </div>
+
 
       {/* Featured New Arrivals */}
       <div className="space-y-6">

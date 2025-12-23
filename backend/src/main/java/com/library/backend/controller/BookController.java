@@ -49,6 +49,11 @@ public class BookController {
         return ResponseEntity.ok(bookService.getNewArrivals());
     }
 
+    @GetMapping("/books/top-rated")
+    public ResponseEntity<List<BookResponse>> getTopRatedBooks() {
+        return ResponseEntity.ok(bookService.getTopRatedBooks());
+    }
+
     @GetMapping("/editors-pick")
     public ResponseEntity<List<BookResponse>> getEditorsChoice() {
         return ResponseEntity.ok(bookService.getEditorsChoice());
@@ -80,18 +85,37 @@ public class BookController {
         }
     }
 
-    @PostMapping("/admin/add-book")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_LIBRARIAN')")
+    @PostMapping("/librarian/add-book")
+    @PreAuthorize("hasAuthority('ROLE_LIBRARIAN')")
     public ResponseEntity<BookResponse> addBook(@RequestBody AddBookRequest book) {
         BookResponse response = bookService.addBook(book);
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/admin/delete-book/{isbn}")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_LIBRARIAN')")
-    public ResponseEntity<BookResponse> removeBook(@PathVariable String isbn) {
-        BookResponse response = bookService.deleteBookByIsbn(isbn);
-        return ResponseEntity.ok(response);
+    @DeleteMapping("/librarian/delete-book/{id}")
+    @PreAuthorize("hasAuthority('ROLE_LIBRARIAN')")
+    public ResponseEntity<?> removeBook(@PathVariable Long id) {
+        try {
+            BookResponse response = bookService.deleteBookById(id);
+            return ResponseEntity.ok(response);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/librarian/update-book/{id}")
+    @PreAuthorize("hasAuthority('ROLE_LIBRARIAN')")
+    public ResponseEntity<?> updateBook(@PathVariable Long id, @RequestBody AddBookRequest bookRequest) {
+        try {
+            BookResponse response = bookService.updateBook(id, bookRequest);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
+        }
     }
 
     @ExceptionHandler(org.springframework.validation.BindException.class)

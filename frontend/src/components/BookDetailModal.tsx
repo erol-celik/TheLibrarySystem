@@ -180,6 +180,27 @@ export function BookDetailModal({
     }
   };
 
+  const handlePurchase = async () => {
+    try {
+      const response = await fetch(`/api/books/${book.id}/purchase`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (response.ok) {
+        toast.success("Book purchased successfully! Refreshing...");
+        if (onPurchase) onPurchase(); // Callback to refresh data/balance
+        onClose(); // Close modal to allow re-opening with fresh data
+      } else {
+        const errorData = await response.text();
+        toast.error(errorData || "Failed to purchase book.");
+      }
+    } catch (error) {
+      toast.error("An error occurred during purchase.");
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -206,7 +227,23 @@ export function BookDetailModal({
                 <div className="mt-4 bg-purple-50 dark:bg-purple-900/30 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-700 dark:text-gray-300">Price</span>
-                    <span className="text-purple-600 dark:text-purple-400">${book.price.toFixed(2)}</span>
+                    <span className="text-purple-600 dark:text-purple-400 font-bold">${book.price.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+              {book.ebookFilePath && (
+                <div className="mt-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-green-800 dark:text-green-400 text-sm font-medium">Digital Copy Owned</span>
+                    <a
+                      href={book.ebookFilePath}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm transition-colors"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      Download PDF
+                    </a>
                   </div>
                 </div>
               )}
@@ -297,8 +334,9 @@ export function BookDetailModal({
 
               {/* Actions */}
               {userRole === 'user' && (
-                <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  {!book.isBorrowed && onBorrow && (
+                <div className={`grid grid-cols-2 gap-3 pt-4 border-t border-gray-200 dark:border-gray-700`}>
+                  {/* Rent Button logic: Hide for purely digital books */}
+                  {!book.isBorrowed && onBorrow && book.bookType !== 'DIGITAL' && (
                     <button
                       onClick={onBorrow}
                       disabled={hasActiveBorrow}
@@ -308,17 +346,25 @@ export function BookDetailModal({
                         }`}
                     >
                       <BookOpen className="w-5 h-5" />
-                      <span>Borrow</span>
+                      <span>Rent</span>
                     </button>
                   )}
-                  {onPurchase && (
+                  {/* Purchase Button logic: Show for DIGITAL/HYBRID if not already owned (no ebookFilePath) */}
+                  {!book.ebookFilePath && book.bookType !== 'PHYSICAL' && (
                     <button
-                      onClick={onPurchase}
-                      className={`bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 ${!book.isBorrowed && onBorrow ? '' : 'col-span-2'}`}
+                      onClick={handlePurchase}
+                      className={`bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 ${(!book.isBorrowed && book.bookType !== 'DIGITAL') ? '' : 'col-span-2'}`}
                     >
                       <ShoppingCart className="w-5 h-5" />
-                      <span>Purchase</span>
+                      <span>Buy Now</span>
                     </button>
+                  )}
+                  {/* Already Purchased / Downloaded Info */}
+                  {book.ebookFilePath && book.bookType !== 'PHYSICAL' && (
+                    <div className="col-span-2 bg-gray-100 dark:bg-gray-700 py-3 rounded-lg flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400">
+                      <ShoppingCart className="w-5 h-5" />
+                      <span>You already own this digital copy</span>
+                    </div>
                   )}
                 </div>
               )}

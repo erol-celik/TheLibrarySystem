@@ -18,7 +18,7 @@ export function LoginScreen({ onLogin, onRegister }: LoginScreenProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (email.trim() && password.trim()) {
       setIsLoading(true); // Butonu kilitle
       try {
@@ -27,8 +27,12 @@ export function LoginScreen({ onLogin, onRegister }: LoginScreenProps) {
         if (!success) {
           setError('Giriş başarısız. Email veya şifre hatalı.');
         }
-      } catch (err) {
-        setError('Bir hata oluştu. Lütfen tekrar deneyin.');
+      } catch (err: any) {
+        if (err.response && err.response.data && typeof err.response.data === 'string') {
+          setError(err.response.data);
+        } else {
+          setError('Bir hata oluştu. Lütfen tekrar deneyin.');
+        }
       } finally {
         setIsLoading(false); // Butonu aç
       }
@@ -125,11 +129,10 @@ export function LoginScreen({ onLogin, onRegister }: LoginScreenProps) {
                       key={role.id}
                       type="button"
                       onClick={() => setSelectedRole(role.id)}
-                      className={`p-4 rounded-2xl transition-all text-center ${
-                        isSelected
+                      className={`p-4 rounded-2xl transition-all text-center ${isSelected
                           ? `${role.color} text-white shadow-lg scale-105`
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                        }`}
                     >
                       <Icon className="w-8 h-8 mx-auto mb-2" />
                       <p className="text-sm font-medium">{role.name}</p>
@@ -179,11 +182,9 @@ export function LoginScreen({ onLogin, onRegister }: LoginScreenProps) {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full text-white py-3 px-4 rounded-xl ${
-                  roles.find((r) => r.id === selectedRole)?.color
-                } ${
-                  roles.find((r) => r.id === selectedRole)?.hoverColor
-                } transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed`}
+                className={`w-full text-white py-3 px-4 rounded-xl ${roles.find((r) => r.id === selectedRole)?.color
+                  } ${roles.find((r) => r.id === selectedRole)?.hoverColor
+                  } transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed`}
               >
                 {isLoading ? (
                   <>

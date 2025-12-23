@@ -1,6 +1,8 @@
 package com.library.backend.service;
 
+import com.library.backend.dto.contribution.BookSuggestionResponse;
 import com.library.backend.dto.contribution.FeedbackRequest;
+import com.library.backend.dto.contribution.FeedbackResponse;
 import com.library.backend.dto.contribution.SuggestionRequest;
 import com.library.backend.entity.*;
 import com.library.backend.entity.enums.BookSuggestionStatus;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -42,8 +45,11 @@ public class FeedbackService {
         feedbackRepository.save(feedback);
     }
 
-    public List<Feedback> getAllFeedbacks() {
-        return feedbackRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<FeedbackResponse> getAllFeedbacks() {
+        return feedbackRepository.findAll().stream()
+                .map(this::mapToFeedbackResponse)
+                .collect(Collectors.toList());
     }
 
     // Admin/Librarian okur ve çözer
@@ -76,8 +82,11 @@ public class FeedbackService {
         suggestionRepository.save(suggestion);
     }
 
-    public List<BookSuggestion> getPendingSuggestions() {
-        return suggestionRepository.findByStatus(BookSuggestionStatus.PENDING);
+    @Transactional(readOnly = true)
+    public List<BookSuggestionResponse> getPendingSuggestions() {
+        return suggestionRepository.findByStatus(BookSuggestionStatus.PENDING).stream()
+                .map(this::mapToBookSuggestionResponse)
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -93,5 +102,41 @@ public class FeedbackService {
             String msg = "Your book suggestion '" + suggestion.getTitle() + "' has been marked as: " + status;
             notificationService.sendNotificationById(adminId, suggestion.getSuggesterUser().getId(), msg);
         }
+    }
+
+    // --- MAPPERS ---
+
+    private FeedbackResponse mapToFeedbackResponse(Feedback feedback) {
+        FeedbackResponse response = new FeedbackResponse();
+        response.setId(feedback.getId());
+        response.setFeedbackType(feedback.getFeedbackType().name());
+        response.setMessage(feedback.getMessage());
+        response.setBookTitle(feedback.getBookTitle());
+        response.setBookAuthor(feedback.getBookAuthor());
+        response.setFeedbackStatus(feedback.getFeedbackStatus().name());
+        response.setCreatedDate(feedback.getCreatedDate());
+
+        if (feedback.getUser() != null) {
+            response.setUserId(feedback.getUser().getId());
+            response.setUserName(feedback.getUser().getName());
+            response.setUserEmail(feedback.getUser().getEmail());
+        }
+        return response;
+    }
+
+    private BookSuggestionResponse mapToBookSuggestionResponse(BookSuggestion suggestion) {
+        BookSuggestionResponse response = new BookSuggestionResponse();
+        response.setId(suggestion.getId());
+        response.setTitle(suggestion.getTitle());
+        response.setAuthor(suggestion.getAuthor());
+        response.setStatus(suggestion.getStatus().name());
+        response.setCreatedDate(suggestion.getCreatedDate());
+
+        if (suggestion.getSuggesterUser() != null) {
+            response.setUserId(suggestion.getSuggesterUser().getId());
+            response.setUserName(suggestion.getSuggesterUser().getName());
+            response.setUserEmail(suggestion.getSuggesterUser().getEmail());
+        }
+        return response;
     }
 }

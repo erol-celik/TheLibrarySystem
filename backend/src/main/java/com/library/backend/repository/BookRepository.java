@@ -19,7 +19,11 @@ public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificat
         List<Book> findByIsEditorsPickTrue();
 
         // 2. En son eklenen 10 kitabı getir (Tarihe göre azalan sırala ve ilk 10'u al)
+        // 2. En son eklenen 10 kitabı getir (Tarihe göre azalan sırala ve ilk 10'u al)
         List<Book> findTop10ByOrderByCreatedDateDesc();
+
+        // 3. En yüksek puanlı 10 aktif kitabı getir
+        List<Book> findTop10ByIsActiveTrueOrderByRatingDesc();
 
         List<Book> findByAuthorIgnoreCase(String author);
 

@@ -54,5 +54,27 @@ export const UserService = {
             badge: 'Member',
             createdDate: new Date().toISOString()
         };
+    },
+
+    // Admin: Tüm kullanıcıları getir
+    getAllUsersAdmin: async (): Promise<any[]> => {
+        const response = await api.get('/admin/users');
+        return response.data;
+    },
+
+    // Admin: Kullanıcı durumunu güncelle (active/blocked)
+    updateUserStatusAdmin: async (userId: string, status: 'active' | 'blocked'): Promise<void> => {
+        // Backend expects 'ACTIVE' or 'BLOCKED' (case insensitive in logic but let's send uppercase)
+        await api.patch(`/admin/users/${userId}/status`, null, { params: { status: status.toUpperCase() } });
+    },
+
+    // Admin: Kullanıcı ceza puanını güncelle
+    updateUserPenaltyAdmin: async (userId: string, penalty: number): Promise<void> => {
+        await api.patch(`/admin/users/${userId}/penalty`, null, { params: { count: penalty } });
+    },
+
+    // Admin: Kullanıcıyı sil
+    deleteUserAdmin: async (userId: string): Promise<void> => {
+        await api.delete(`/admin/users/${userId}`);
     }
 };

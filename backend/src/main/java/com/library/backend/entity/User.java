@@ -49,7 +49,8 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "address", columnDefinition = "TEXT")
     private String address;
 
-    // --- SCORE ALANI BURADAN SİLİNDİ ---
+    @Column(name = "penalty_count", nullable = false)
+    private int penaltyCount = 0;
 
     @ElementCollection(targetClass = RoleType.class, fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))

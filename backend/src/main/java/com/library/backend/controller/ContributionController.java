@@ -1,8 +1,10 @@
 package com.library.backend.controller;
 
+import com.library.backend.dto.contribution.BookSuggestionResponse;
 import com.library.backend.dto.contribution.DonationRequest;
 import com.library.backend.dto.contribution.DonationResponse;
 import com.library.backend.dto.contribution.FeedbackRequest;
+import com.library.backend.dto.contribution.FeedbackResponse;
 import com.library.backend.dto.contribution.SuggestionRequest;
 import com.library.backend.entity.BookSuggestion;
 import com.library.backend.entity.User;
@@ -73,8 +75,14 @@ public class ContributionController {
 
     @GetMapping("/admin/feedbacks")
     @PreAuthorize("hasAnyRole( 'ROLE_ADMIN')")
-    public ResponseEntity<List<BookSuggestion>> getPendingSuggestions() {
+    public ResponseEntity<List<BookSuggestionResponse>> getPendingSuggestions() {
         return ResponseEntity.ok(feedbackService.getPendingSuggestions());
+    }
+
+    @GetMapping("/feedbacks")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
+    public ResponseEntity<List<FeedbackResponse>> getAllFeedbacks() {
+        return ResponseEntity.ok(feedbackService.getAllFeedbacks());
     }
 
     @PutMapping("/admin/feedbacks/{id}/status")
@@ -95,11 +103,14 @@ public class ContributionController {
         return ResponseEntity.ok("Feedback sent.");
     }
 
-    @GetMapping("/feedbacks")
+    // Admin feedback çözme endpoint'i
+    @PutMapping("/admin/feedbacks/{id}/resolve")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
-    public ResponseEntity<List<com.library.backend.entity.Feedback>> getAllFeedbacks() {
-        return ResponseEntity.ok(feedbackService.getAllFeedbacks());
-    }
+    public ResponseEntity<?> resolveFeedback(@PathVariable Long id, @RequestParam String response) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User admin = userRepository.findByEmail(email).orElseThrow();
 
-    // Admin feedback çözme endpoint'i de eklenebilir...
+        feedbackService.resolveFeedback(admin.getId(), id, response);
+        return ResponseEntity.ok("Feedback resolved.");
+    }
 }

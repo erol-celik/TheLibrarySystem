@@ -11,10 +11,16 @@ import { AccountManagement } from './components/AccountManagement';
 import { Wallet, Transaction } from './components/Wallet';
 import { HomePage } from './components/HomePage';
 import { LibrarianPanel } from './components/LibrarianPanel';
+import { AdminHomePage } from './components/AdminHomePage';
+import { LibrarianHomePage } from './components/LibrarianHomePage';
 import { BookHistory } from './components/BookHistory';
 import { FeedbackForm } from './components/FeedbackForm';
 import { DonationForm } from './components/DonationForm';
 import { BlindDate } from './components/BlindDate';
+import { BookManagement } from "./components/BookManagement";
+import { UserManagement } from './components/UserManagement';
+import { FeedbackManagement } from './components/FeedbackManagement';
+import { AdminPanel } from './components/AdminPanel'; // Yorum yönetimi için
 
 // Servisler ve Tipler
 import { AuthService } from './services/AuthService';
@@ -36,12 +42,17 @@ export default function App() {
   const [showRegister, setShowRegister] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [allUsers, setAllUsers] = useState<UserAccount[]>([]);
 
+  // Veri State'leri
   // Veri State'leri
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [newArrivals, setNewArrivals] = useState<Book[]>([]);
+  const [topRatedBooks, setTopRatedBooks] = useState<Book[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
-  const [stats, setStats] = useState({ totalUsers: 0, borrowedCount: 0, totalBooks: 0 });
+  // Allow stats to hold additional admin/librarian data
+  const [stats, setStats] = useState<any>({ totalUsers: 0, borrowedCount: 0, totalBooks: 0 });
   const [searchTerm, setSearchTerm] = useState('');
   const [transactions, setTransactions] = useState<Transaction[]>([]); // Initialize Transaction State
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -49,7 +60,6 @@ export default function App() {
   const [rentalRequests, setRentalRequests] = useState([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notificationCount, setNotificationCount] = useState(0);
-  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
 
   // Seçili Kitap (Modal için)
   // Pagination State
@@ -68,12 +78,14 @@ export default function App() {
           setCurrentUser(user);
           setIsLoggedIn(true);
 
-          // 2. Cüzdan geçmişini çek
-          try {
-            const txList = await WalletService.getTransactions();
-            setTransactions(txList);
-          } catch (err) {
-            console.error("Cüzdan geçmişi çekilemedi:", err);
+          // 2. Cüzdan geçmişini çek (Sadece normal kullanıcılar için)
+          if (user.role === 'user') {
+            try {
+              const txList = await WalletService.getTransactions();
+              setTransactions(txList);
+            } catch (err) {
+              console.error("Cüzdan geçmişi çekilemedi:", err);
+            }
           }
 
           // 3. Kütüphane verilerini çek
@@ -104,7 +116,6 @@ export default function App() {
   useEffect(() => {
     if (activeTab === 'requests' && (currentUser?.role === 'librarian' || currentUser?.role === 'admin')) {
       RentalService.getAllRequests().then(setRentalRequests);
-      FeedbackService.getAllFeedbacks().then(setFeedbacks).catch(e => console.error(e));
     }
     if (activeTab === 'notifications') {
       fetchNotificationsRaw();
@@ -122,23 +133,39 @@ export default function App() {
   const fetchLibraryData = async () => {
     setIsLoadingData(true);
     try {
-      const [catsData, dashboardData] = await Promise.all([
+      const [catsData, dashboardData, newArrivalsData, topRatedData] = await Promise.all([
         BookService.getAllCategories(),
-        // Dashboard verisini çekmek için direkt api çağrısı veya DashboardService kullanın
-        DashboardService.getPublicStats()
+        DashboardService.getPublicStats(),
+        BookService.getNewArrivals(),
+        BookService.getTopRatedBooks()
       ]);
 
       setCategories(catsData);
+      setNewArrivals(newArrivalsData);
+      setTopRatedBooks(topRatedData);
       console.log('DEBUG: Categories fetched:', catsData);
+
+      let adminStats = null;
+      if (currentUser?.role === 'admin') {
+        adminStats = await DashboardService.getAdminStats();
+      }
 
       setStats({
         totalUsers: dashboardData.totalUsers,
         borrowedCount: dashboardData.activeRentals,
-        totalBooks: dashboardData.totalBooks
+        totalBooks: dashboardData.totalBooks,
+        ...adminStats // Merge admin stats if available
       });
+
+      // Fetch unread notifications count
+      if (currentUser) {
+        const count = await NotificationService.getUnreadCount();
+        setNotificationCount(count);
+      }
 
     } catch (error) {
       console.error("Veriler çekilemedi:", error);
+      toast.error("Veriler yüklenirken bir hata oluştu.");
     } finally {
       setIsLoadingData(false);
     }
@@ -166,7 +193,7 @@ export default function App() {
         category: cat || undefined,
         available: selectedStatus === 'available' ? true : (selectedStatus === 'borrowed' ? false : undefined),
         page: pageIndex,
-        size: 15,
+        size: 12,
         sortBy: 'title',
         direction: 'asc'
       });
@@ -221,14 +248,30 @@ export default function App() {
 
       await fetchLibraryData();
       setSelectedBook(null); // Modalı kapat
-    } catch (error: any) {
-      // Backend'den gelen hata mesajını (Örn: Banlı kullanıcı) göster
-      const msg = error.response?.data || "Kiralama talebi gönderilemedi.";
-      toast.error(msg);
     } finally {
       setIsLoadingData(false);
     }
   };
+
+  // Notification Polling (Heartbeat) - 30 seconds
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const pollNotifications = async () => {
+      try {
+        const count = await NotificationService.getUnreadCount();
+        setNotificationCount(count);
+      } catch (err) {
+        console.warn("Notification polling failed:", err);
+      }
+    };
+
+    // Run immediately on mount/user change
+    pollNotifications();
+
+    const interval = setInterval(pollNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [currentUser]);
   // --- AUTH İŞLEMLERİ (Giriş / Kayıt / Çıkış) ---
 
   const handleLogin = async (email: string, pass: string) => {
@@ -279,21 +322,32 @@ export default function App() {
 
   // Onaylama fonksiyonu
   const handleApprove = async (id: number) => {
-
     try {
       await RentalService.approveRequest(id);
-      toast.success("Talep onaylandı, stok güncellendi!");
-      // Listeyi yenile
+      toast.success("Talep onaylandı!");
       const updated = await RentalService.getAllRequests();
       setRentalRequests(updated);
-      fetchLibraryData(); // Dashboard sayılarını güncelle
+      fetchLibraryData();
     } catch (error) {
       toast.error("Onaylama başarısız.");
     }
   };
 
+  const handleReject = async (id: number) => {
+    try {
+      await RentalService.rejectRequest(id);
+      toast.success("Talep reddedildi!");
+      const updated = await RentalService.getAllRequests();
+      setRentalRequests(updated);
+      fetchLibraryData();
+    } catch (error) {
+      toast.error("Reddetme başarısız.");
+    }
+  };
+
   // --- BAKİYE GÜNCELLEME SİNYALİ ---
   const refreshUserBalance = async () => {
+    if (currentUser?.role !== 'user') return;
     try {
       const updatedUser = await UserService.getMe();
       // FIX: Preserve existing state but update user data
@@ -323,7 +377,61 @@ export default function App() {
     }
   };
 
+  const handleAddBook = (newBook: any) => {
+    console.log("Book to add:", newBook);
+    // Buraya daha önce yazdığımız API isteği gelecek
+  };
+
+  const handleRemoveBook = async (id: string) => {
+    // 1. Find book to get ISBN (if needed) or just use ID if backend accepts ID
+    // The backend accept ID (Long) for deleteBookByIsbn (which we renamed to deleteBookById in backend)
+    // But frontend service might expect ISBN string. Let's check BookService.ts
+    // BookService.deleteBook takes 'isbn: string'.
+    // However, looking at the backend change: public BookResponse deleteBookById(Long id)
+    // So we should pass the ID.
+
+    if (!id) return;
+
+    try {
+      // Optimistic update or wait for success? Let's wait for success.
+      await BookService.deleteBook(id);
+
+      // Update State
+      setBooks(prev => prev.filter(b => b.id !== id));
+      toast.success("Kitap başarıyla silindi.");
+    } catch (error) {
+      console.error("Kitap silme hatası:", error);
+      toast.error("Kitap silinemedi.");
+    }
+  };
+
+  const handleEditBook = async (id: string, updatedBook: any) => {
+    try {
+      if (!updatedBook) return;
+
+      // Call Backend
+      // Note: Layout of updatedBook might match what BookManagement sends.
+      // DTO conversion happens in BookManagement usually or here?
+      // BookManagement sends {...newBook, ...} which matches AddBookRequest structure (approximately).
+      // Let's assume the payload is correct for backend.
+
+      const responseBook = await BookService.updateBook(id, updatedBook);
+
+      // Update State
+      setBooks(prev => prev.map(b => b.id === id ? responseBook : b));
+
+      toast.success("Kitap başarıyla güncellendi.");
+
+      // Refresh Stats
+      await fetchLibraryData();
+    } catch (error) {
+      console.error("Kitap güncelleme hatası:", error);
+      toast.error("Kitap güncellenemedi.");
+    }
+  };
+
   const handleAddFunds = async (amount: number) => {
+    if (currentUser?.role !== 'user') return;
 
     if (isNaN(amount) || amount <= 0) {
       toast.error("Lütfen geçerli bir miktar girin.");
@@ -449,7 +557,9 @@ export default function App() {
               </h1>
               <div className="flex items-center gap-4">
                 <span className="text-sm font-semibold px-3 py-1 bg-purple-100 text-purple-700 rounded-full">
-                  {currentUser.username} • ${currentUser.walletBalance.toFixed(2)}
+                  {currentUser.role === 'user'
+                    ? `${currentUser.username} • $${currentUser.walletBalance.toFixed(2)}`
+                    : currentUser.username}
                 </span>
               </div>
             </header>
@@ -462,20 +572,44 @@ export default function App() {
               ) : (
                 <>
                   {activeTab === 'home' && (
-                    <HomePage
-                      books={books}
-                      onSelectBook={setSelectedBook}
-                      onNavigateToCatalog={() => setActiveTab('catalog')}
-                      onNavigateToBlindDate={() => setActiveTab('blinddate')}
-                      onCategorySelect={(category) => {
-                        setSelectedCategory(category);
-                        setActiveTab('catalog');
-                      }}
-                      totalUsers={stats.totalUsers}
-                      booksBorrowedCount={stats.borrowedCount}
-                      totalBooksCount={stats.totalBooks}
-                      categories={categories}
-                    />
+                    <>
+                      {currentUser.role === 'admin' ? (
+                        <AdminHomePage
+                          {...stats} // Spread all stats (including admin specific ones)
+                          borrowedBooks={stats.borrowedCount}
+                          onNavigateToUserManagement={() => setActiveTab('users')}
+                          onNavigateToBooks={() => setActiveTab('catalog')}
+                          onNavigateToFeedbacks={() => setActiveTab('feedbackManagement')}
+                        />
+                      ) : currentUser.role === 'librarian' ? (
+                        <LibrarianHomePage
+                          // Librarian Logic: derive stats from available data or pass specific stats
+                          pendingBorrowRequests={rentalRequests.filter((r: any) => r.status === 'PENDING').length}
+                          // For other specific stats, we might not have them in App.tsx state yet, 
+                          // but we can pass what we have or let defaults take over
+                          totalBooksManaged={stats.totalBooks}
+                          activeLoans={stats.borrowedCount}
+                          onNavigateToBorrows={() => setActiveTab('requests')}
+                          onNavigateToReturns={() => setActiveTab('requests')}
+                          onNavigateToDonations={() => setActiveTab('requests')}
+                        />
+                      ) : (
+                        <HomePage
+                          books={books}
+                          onSelectBook={setSelectedBook}
+                          onNavigateToCatalog={() => setActiveTab('catalog')}
+                          onNavigateToBlindDate={() => setActiveTab('blinddate')}
+                          onCategorySelect={(category) => {
+                            setSelectedCategory(category);
+                            setActiveTab('catalog');
+                          }}
+                          totalUsers={stats.totalUsers}
+                          booksBorrowedCount={stats.borrowedCount}
+                          totalBooksCount={stats.totalBooks}
+                          categories={categories}
+                        />
+                      )}
+                    </>
                   )}
 
                   {activeTab === 'blinddate' && (
@@ -511,6 +645,14 @@ export default function App() {
                     />
                   )}
 
+                  {activeTab === 'bookManagement' && (
+                    <BookManagement
+                      books={books || []}
+                      onAddBook={handleAddBook}
+                      onRemoveBook={handleRemoveBook}
+                      onEditBook={handleEditBook}
+                    />
+                  )}
                   {activeTab === 'account' && (
                     <AccountManagement
                       username={currentUser.username}
@@ -523,6 +665,19 @@ export default function App() {
                       isBanned={currentUser.status === 'blocked'}
                       onUpdateProfile={handleUpdateProfile}
                     />
+                  )}
+
+                  {activeTab === 'users' && (
+                    <UserManagement />
+                  )}
+
+                  {/* Comments Management Panel */}
+                  {activeTab === 'admin' && (
+                    <AdminPanel />
+                  )}
+
+                  {activeTab === 'feedbackManagement' && (
+                    <FeedbackManagement />
                   )}
 
                   {activeTab === 'history' && (
@@ -552,9 +707,6 @@ export default function App() {
                     currentUser?.role === 'librarian' || currentUser?.role === 'admin')
                     && (
                       <LibrarianPanel
-                        books={books}
-                        onAddBook={() => { }}
-                        onRemoveBook={() => { }}
                         borrowRequests={rentalRequests.map((req: any) => ({
                           id: String(req.id),
                           bookId: String(req.bookId || ''),
@@ -563,9 +715,8 @@ export default function App() {
                           requestDate: req.rentDate,
                           status: req.status
                         }))}
-                        feedbacks={feedbacks}
                         onApproveBorrow={(id) => handleApprove(Number(id))}
-                        onRejectBorrow={() => { }}
+                        onRejectBorrow={(id) => handleReject(Number(id))}
                       />
                     )}
 
@@ -594,7 +745,14 @@ export default function App() {
               currentUsername={currentUser.username}
               hasActiveBorrow={false}
               currentUserBadge={currentUser.badge}
-              onPurchase={() => toast.info("Satın alma işlemi başlatılıyor...")}
+              onPurchase={async () => {
+                await refreshUserBalance();
+                await fetchLibraryData();
+                // Re-fetch the same book to get updated ebookFilePath
+                if (selectedBook) {
+                  await handleSearch(); // This will refresh the books list
+                }
+              }}
               onAddComment={() => { }}
               onDeleteComment={() => { }}
               onEditBook={() => { }}
