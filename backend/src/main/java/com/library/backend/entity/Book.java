@@ -61,6 +61,9 @@ public class Book extends BaseEntity {
     @Column(name = "ebook_file_path")
     private String ebookFilePath; // dijital link
 
+    @Column(name = "pdf_url", length = 500)
+    private String pdfUrl; // güvenli indirme linki
+
     @Column(nullable = false)
     private Integer totalStock; // toplam fiziki kopya sayısı
 

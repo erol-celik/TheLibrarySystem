@@ -22,6 +22,7 @@ public class AddBookRequest {
     private BookType bookType;
     private BigDecimal price;
     private String ebookFilePath;
+    private String pdfUrl;
     private String imageUrl; // Kapak resmi için
     private Set<String> categories;
     private Set<String> tags;

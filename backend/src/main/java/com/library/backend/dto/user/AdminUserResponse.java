@@ -8,8 +8,11 @@ import java.util.Set;
 
 @Data
 public class AdminUserResponse {
+    private Long id;
     private String email;
     private String name;
     private Set<RoleType> role;
     private LocalDateTime joinDate;
+    private boolean isBanned;
+    private int penaltyCount;
 }

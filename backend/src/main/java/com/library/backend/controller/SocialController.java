@@ -61,4 +61,25 @@ public class SocialController {
     public ResponseEntity<List<com.library.backend.entity.Review>> getReviewsByBook(@PathVariable Long bookId) {
         return ResponseEntity.ok(reviewService.getReviewsByBookId(bookId));
     }
+
+    // --- ADMIN ENDPOINTS ---
+
+    // Tüm yorumları getir (Admin Panel İçin)
+    @GetMapping("/reviews/admin/all")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<List<com.library.backend.dto.social.AdminReviewResponse>> getAllReviewsForAdmin() {
+        return ResponseEntity.ok(reviewService.getAllReviewsForAdmin());
+    }
+
+    // Yorum sil (Admin Yetkisiyle)
+    @DeleteMapping("/reviews/admin/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<?> deleteReviewAsAdmin(@PathVariable Long id) {
+        try {
+            reviewService.deleteReview(id);
+            return ResponseEntity.ok("Review deleted successfully.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

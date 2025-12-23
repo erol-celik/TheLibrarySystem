@@ -16,7 +16,7 @@ export interface Book {
   id: string;
   title: string;
   author: string;
-  bookType: 'PHYSICAL' | 'DIGITAL';
+  bookType: 'PHYSICAL' | 'DIGITAL' | 'HYBRID';
   categoryName: string[];
   tags: string[];
   description: string;
@@ -27,11 +27,14 @@ export interface Book {
   publisher: string;
   coverUrl: string;
   ebookFilePath: string;
+  pdfUrl?: string; // Secure download URL
   stock: number;
   isBorrowed: boolean;
   borrowedBy?: string; // Added for UI detail
   activeRentalsCount?: number;
   comments: Comment[]; // Now required and typed
+  rating?: number;
+  reviewCount?: number;
 }
 
 export interface UserAccount {

@@ -37,7 +37,7 @@ public class RentalService {
     private static final BigDecimal DAILY_PENALTY_RATE = BigDecimal.valueOf(5.00);
 
     @Transactional
-    // --- 1. kiralama işlemi (sadece  fiziksel kitaplar) ---
+    // --- 1. kiralama işlemi (sadece fiziksel kitaplar) ---
     public RentalResponse rentBook(String userEmail, RentRequest request) {
         // kullanıcı ve kitap bulma
         User user = userRepository.findByEmail(userEmail)
@@ -65,9 +65,11 @@ public class RentalService {
             throw new RuntimeException("Book is out of stock.");
         }
 
-        // kural: tek kitap limiti (sadece APPROVED veya REQUESTED kayıtları kontrol edilmeli)
+        // kural: tek kitap limiti (sadece APPROVED veya REQUESTED kayıtları kontrol
+        // edilmeli)
         // Kullanıcının elinde onaylı (APPROVED) veya bekleyen (REQUESTED) kitap var mı?
-        // NOT: RentalRepository'de sadece APPROVED kontrolü var. REQUESTED'ı da eklemek gerekir.
+        // NOT: RentalRepository'de sadece APPROVED kontrolü var. REQUESTED'ı da eklemek
+        // gerekir.
         // Şimdilik sadece APPROVED üzerinden devam edelim.
         boolean hasActiveRental = rentalRepository.existsByUserIdAndStatus(user.getId(), RentalStatus.APPROVED);
 
@@ -89,15 +91,22 @@ public class RentalService {
         // Ancak bu, kütüphaneci onayladığında daha anlamlı olur.
         // Fakat entity'de nullable=false olduğu için burada ayarlayalım:
         rental.setRentDate(LocalDate.now());
-        // DueDate, RentDate'e göre ayarlanır (Bu tarih kütüphanecinin onayladığı tarih değil, requestin başladığı tarihtir).
+        // DueDate, RentDate'e göre ayarlanır (Bu tarih kütüphanecinin onayladığı tarih
+        // değil, requestin başladığı tarihtir).
         rental.setDueDate(LocalDate.now().plusDays(RENTAL_PERIOD_DAYS));
 
         Rental savedRental = rentalRepository.save(rental);
+
+        // Notify Librarians
+        String message = String.format("A new borrow request for '%s' has been received from %s.", book.getTitle(),
+                user.getName());
+        notificationService.sendNotificationToRole(com.library.backend.entity.enums.RoleType.LIBRARIAN, message);
+
         return mapToResponse(savedRental);
     }
 
     @Transactional
-    public List<RentalResponse> showAllRentalRequest(){
+    public List<RentalResponse> showAllRentalRequest() {
         List<Rental> rentalList = rentalRepository.findAllByStatus(RentalStatus.REQUESTED);
         return rentalList.stream()
                 .map(this::mapToResponse)
@@ -118,7 +127,8 @@ public class RentalService {
         // 1. Stok kontrolü (Olası stok tükenmesi kontrolü)
         Book book = rental.getBook();
         if (book.getAvailableStock() <= 0) {
-            // Onaylama aşamasında stok bitti, talebi reddetme mekanizması devreye girebilir.
+            // Onaylama aşamasında stok bitti, talebi reddetme mekanizması devreye
+            // girebilir.
             throw new RuntimeException("Book is out of stock. Cannot approve rental.");
         }
 
@@ -135,6 +145,27 @@ public class RentalService {
         String message = String.format("Kiralamanız onaylandı! Kitap: %s. Son iade tarihi: %s",
                 rental.getBook().getTitle(),
                 rental.getDueDate());
+
+        notificationService.sendSystemNotification(rental.getUser(), message);
+
+        Rental savedRental = rentalRepository.save(rental);
+        return mapToResponse(savedRental);
+    }
+
+    @Transactional
+    // --- 5. Kiralama Talebini Reddetme (Librarian/Admin yapar) ---
+    public RentalResponse rejectRentalRequest(Long rentalId) {
+        Rental rental = rentalRepository.findById(rentalId)
+                .orElseThrow(() -> new RuntimeException("Rental request not found."));
+
+        if (rental.getStatus() != RentalStatus.REQUESTED) {
+            throw new RuntimeException("Only REQUESTED rentals can be rejected. Current status: " + rental.getStatus());
+        }
+
+        rental.setStatus(RentalStatus.REJECTED);
+
+        String message = String.format("Maalesef kiralama talebiniz reddedildi. Kitap: %s.",
+                rental.getBook().getTitle());
 
         notificationService.sendSystemNotification(rental.getUser(), message);
 
@@ -184,7 +215,8 @@ public class RentalService {
                 walletRepository.save(wallet);
 
                 // işlem logu oluştur
-                walletService.saveTransaction(wallet, TransactionType.PENALTY_PAYMENT, penalty, rental.getBook().getId());
+                walletService.saveTransaction(wallet, TransactionType.PENALTY_PAYMENT, penalty,
+                        rental.getBook().getId());
             }
         }
 
@@ -202,6 +234,31 @@ public class RentalService {
 
         Rental savedRental = rentalRepository.save(rental);
         return mapToResponse(savedRental);
+    }
+
+    @Transactional
+    public RentalResponse userReturnBook(String userEmail, Long rentalId) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found."));
+
+        Rental rental = rentalRepository.findById(rentalId)
+                .orElseThrow(() -> new RuntimeException("Rental record not found."));
+
+        // Sahiplik kontrolü
+        if (!rental.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("You are not authorized to return this book.");
+        }
+
+        // İade işlemini gerçekleştir
+        RentalResponse response = returnBook(rentalId);
+
+        // Kütüphanecileri bilgilendir
+        String message = String.format("A book has been returned by %s. Title: %s", user.getName(),
+                rental.getBook().getTitle());
+
+        notificationService.sendNotificationToRole(com.library.backend.entity.enums.RoleType.LIBRARIAN, message);
+
+        return response;
     }
 
     private RentalResponse mapToResponse(Rental rental) {
@@ -227,6 +284,5 @@ public class RentalService {
 
         return response;
     }
-
 
 }

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -58,11 +59,25 @@ public class RentalController {
         return ResponseEntity.ok(history);
     }
 
-    // --- 17. ENDPOINT: KİRALAMA TALEBİNİ ONAYLA (Sadece LIBRARIAN) ---
     @PostMapping("/rentals/approve/{id}")
     @PreAuthorize("hasAuthority('ROLE_LIBRARIAN')")
     public ResponseEntity<RentalResponse> approveRental(@PathVariable Long id) {
         RentalResponse response = rentalService.approveRentalRequest(id);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/rentals/reject/{id}")
+    @PreAuthorize("hasAuthority('ROLE_LIBRARIAN')")
+    public ResponseEntity<RentalResponse> rejectRental(@PathVariable Long id) {
+        RentalResponse response = rentalService.rejectRentalRequest(id);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/rentals/{id}/return")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<RentalResponse> userReturnBook(@PathVariable Long id, Authentication authentication) {
+        String email = authentication.getName();
+        RentalResponse response = rentalService.userReturnBook(email, id);
         return ResponseEntity.ok(response);
     }
 

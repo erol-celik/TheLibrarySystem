@@ -9,11 +9,12 @@ import com.library.backend.entity.Category;
 import com.library.backend.entity.Tag;
 import com.library.backend.entity.enums.BookType;
 import com.library.backend.entity.enums.RentalStatus;
-import com.library.backend.repository.BookRepository;
-import com.library.backend.repository.CategoryRepository;
-import com.library.backend.repository.TagRepository;
+import com.library.backend.entity.User;
+import com.library.backend.repository.*;
 import com.library.backend.specification.BookSpecification;
 import jakarta.transaction.Transactional;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -32,13 +33,18 @@ public class BookService {
     private final BookRepository bookRepository;
     private final TagRepository tagRepository;
     private final CategoryRepository categoryRepository;
+    private final BookSaleRepository bookSaleRepository;
+    private final UserRepository userRepository;
 
     @Autowired
     public BookService(BookRepository bookRepository, TagRepository tagRepository,
-            CategoryRepository categoryRepository) {
+            CategoryRepository categoryRepository, BookSaleRepository bookSaleRepository,
+            UserRepository userRepository) {
         this.bookRepository = bookRepository;
         this.tagRepository = tagRepository;
         this.categoryRepository = categoryRepository;
+        this.bookSaleRepository = bookSaleRepository;
+        this.userRepository = userRepository;
     }
 
     // --- YENİ EKLENEN DİNAMİK SORGULAMA METODU ---
@@ -83,6 +89,11 @@ public class BookService {
                 .filter(Book::isActive)
                 .collect(Collectors.toList());
         return convertToDtoList(activeBooks);
+    }
+
+    public List<BookResponse> getTopRatedBooks() {
+        List<Book> topRated = bookRepository.findTop10ByIsActiveTrueOrderByRatingDesc();
+        return convertToDtoList(topRated);
     }
 
     public List<BookResponse> getAllBooks() {
@@ -185,6 +196,7 @@ public class BookService {
         }
 
         newBook.setEbookFilePath(request.getEbookFilePath());
+        newBook.setPdfUrl(request.getPdfUrl());
         newBook.setActive(true);
 
         Set<Tag> tags = request.getTags().stream()
@@ -197,15 +209,82 @@ public class BookService {
         return mapToResponse(newBook);
     }
 
-    public BookResponse deleteBookByIsbn(String isbn) {
-        Book bookToDelete = bookRepository.findByIsbn(isbn);
-        if (bookToDelete.getTotalStock() != bookToDelete.getAvailableStock()) {
+    @Transactional
+    public BookResponse deleteBookById(Long id) {
+        Book bookToDelete = bookRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Book not found with id: " + id));
+        if (bookToDelete.getTotalStock() != null && bookToDelete.getAvailableStock() != null &&
+                !bookToDelete.getTotalStock().equals(bookToDelete.getAvailableStock())) {
             throw new IllegalStateException("Book cannot be deleted: All copies must be returned before deletion.");
         }
         BookResponse response = mapToResponse(bookToDelete);
         bookToDelete.setActive(false);
         bookRepository.save(bookToDelete);
         return response;
+    }
+
+    @Transactional
+    public BookResponse updateBook(Long id, AddBookRequest request) {
+        Book book = bookRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Book not found with id: " + id));
+
+        book.setTitle(request.getTitle());
+        book.setAuthor(request.getAuthor());
+        book.setBookType(request.getBookType());
+        book.setDescription(request.getDescription());
+        book.setIsbn(request.getIsbn());
+        book.setPublisher(request.getPublisher());
+        book.setPublicationYear(request.getPublicationYear());
+        book.setPageCount(request.getPageCount());
+        book.setImageUrl(request.getImageUrl());
+        book.setEbookFilePath(request.getEbookFilePath());
+        book.setPdfUrl(request.getPdfUrl());
+
+        // Update stock while preserving borrowed count
+        int borrowedCount = book.getTotalStock() - book.getAvailableStock();
+        int newTotalStock = request.getTotalStock();
+
+        // Prevent negative available stock
+        if (newTotalStock < borrowedCount) {
+            throw new RuntimeException(
+                    "Cannot lower total stock below currently borrowed count (" + borrowedCount + ").");
+        }
+
+        book.setTotalStock(newTotalStock);
+        book.setAvailableStock(newTotalStock - borrowedCount);
+
+        book.setPrice(request.getPrice());
+
+        // Update Categories
+        book.getCategories().clear();
+        if (request.getCategories() != null) {
+            for (String catName : request.getCategories()) {
+                Category category = categoryRepository.findByName(catName)
+                        .orElseGet(() -> {
+                            Category newCat = new Category();
+                            newCat.setName(catName);
+                            return categoryRepository.save(newCat);
+                        });
+                book.addCategory(category);
+            }
+        }
+
+        // Update Tags
+        book.getTags().clear(); // Clear existing tags
+        if (request.getTags() != null) {
+            for (String tagName : request.getTags()) {
+                Tag tag = tagRepository.findByName(tagName)
+                        .orElseGet(() -> {
+                            Tag newTag = new Tag();
+                            newTag.setName(tagName);
+                            return tagRepository.save(newTag);
+                        });
+                book.addTag(tag);
+            }
+        }
+
+        bookRepository.save(book);
+        return mapToResponse(book);
     }
 
     // --- Helper Metotlar ---
@@ -230,7 +309,40 @@ public class BookService {
         response.setPageCount(book.getPageCount());
         response.setBookType(book.getBookType());
         response.setPrice(book.getPrice());
-        response.setEbookFilePath(book.getEbookFilePath());
+
+        // Security: Hide ebookFilePath unless user owns it or is admin/librarian
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean canSeeEbookPath = false;
+
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+            String email = auth.getName();
+            Optional<User> userOpt = userRepository.findByEmail(email);
+
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                // Check if user is ADMIN or LIBRARIAN
+                boolean isAdminOrLibrarian = user.getRoles().stream()
+                        .anyMatch(role -> "ADMIN".equals(role.name()) || "LIBRARIAN".equals(role.name()));
+
+                if (isAdminOrLibrarian) {
+                    canSeeEbookPath = true;
+                } else {
+                    // Check if user has purchased this book
+                    boolean hasPurchased = bookSaleRepository.existsByUserIdAndBookId(user.getId(), book.getId());
+                    canSeeEbookPath = hasPurchased;
+                }
+            }
+        }
+
+        if (canSeeEbookPath) {
+            response.setEbookFilePath(book.getEbookFilePath());
+        } else {
+            response.setEbookFilePath(null);
+        }
+
+        // pdfUrl is kept for backward compatibility but not used for security
+        response.setPdfUrl(book.getPdfUrl());
+
         response.setAvailableStock(book.getAvailableStock());
         response.setRating(book.getRating());
         response.setReviewCount(book.getReviewCount());

@@ -28,7 +28,7 @@ export const BookService = {
             price: b.price || 0,
             publicationYear: b.publicationYear || 0,
             publisher: b.publisher || '',
-            coverUrl: b.imageUrl || 'https://placehold.co/300x450',
+            coverUrl: b.imageUrl ? b.imageUrl.replace('page_count', '').trim() : 'https://placehold.co/300x450',
             ebookFilePath: b.ebookFilePath || '',
             stock: b.availableStock || 0,
             isBorrowed: b.availableStock <= 0,
@@ -42,7 +42,9 @@ export const BookService = {
                 isSpoiler: c.spoiler,
                 helpfulCount: c.helpfulCount || 0,
                 userId: c.user?.id
-            }))
+            })),
+            rating: b.rating || 0,
+            reviewCount: b.reviewCount || 0
         };
     },
 
@@ -119,17 +121,27 @@ export const BookService = {
         return response.data.map(BookService.mapToBook);
     },
 
+    getTopRatedBooks: async (): Promise<Book[]> => {
+        const response = await api.get('/books/top-rated');
+        return response.data.map(BookService.mapToBook);
+    },
+
     getEditorsChoice: async (): Promise<Book[]> => {
         const response = await api.get('/editors-pick');
         return response.data.map(BookService.mapToBook);
     },
 
     addBook: async (book: any): Promise<Book> => {
-        const response = await api.post('/admin/add-book', book);
+        const response = await api.post('/librarian/add-book', book);
         return BookService.mapToBook(response.data);
     },
 
     deleteBook: async (isbn: string): Promise<void> => {
-        await api.delete(`/admin/delete-book/${isbn}`);
-    }
+        await api.delete(`/librarian/delete-book/${isbn}`);
+    },
+
+    updateBook: async (id: string, book: any): Promise<Book> => {
+        const response = await api.put<any>(`/librarian/update-book/${id}`, book);
+        return BookService.mapToBook(response.data);
+    },
 };

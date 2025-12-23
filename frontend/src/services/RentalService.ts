@@ -22,5 +22,16 @@ export const RentalService = {
     approveRequest: async (rentalId: number) => {
         const response = await api.post(`/rentals/approve/${rentalId}`);
         return response.data;
+    },
+
+    // Talebi reddet
+    rejectRequest: async (rentalId: number) => {
+        const response = await api.post(`/rentals/reject/${rentalId}`);
+        return response.data;
+    },
+
+    returnBook: async (rentalId: number) => {
+        const response = await api.put(`/rentals/${rentalId}/return`);
+        return response.data;
     }
 };

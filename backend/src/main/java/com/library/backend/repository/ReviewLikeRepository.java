@@ -10,4 +10,7 @@ public interface ReviewLikeRepository extends JpaRepository<ReviewLike, Long> {
 
     // beğeniyi geri almak (unlike) için kaydı bul
     Optional<ReviewLike> findByUserIdAndReviewId(Long userId, Long reviewId);
+
+    // Bir yoruma ait tüm beğenileri bul (Silme işlemi için)
+    java.util.List<ReviewLike> findAllByReviewId(Long reviewId);
 }

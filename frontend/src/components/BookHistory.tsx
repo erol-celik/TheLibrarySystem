@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, Calendar, CheckCircle, Clock, AlertCircle, XCircle } from 'lucide-react';
+import { BookOpen, Calendar, CheckCircle, Clock, AlertCircle, XCircle, RotateCcw } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { toast } from 'sonner';
 import { RentalService } from '../services/RentalService';
 
 interface RentalHistoryItem {
@@ -30,6 +31,17 @@ export function BookHistory() {
       console.error("Geçmiş yüklenirken hata:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleReturn = async (rentalId: number) => {
+    try {
+      await RentalService.returnBook(rentalId);
+      toast.success("Book returned successfully!");
+      loadHistory();
+    } catch (error) {
+      toast.error("Failed to return book.");
+      console.error(error);
     }
   };
 
@@ -114,8 +126,20 @@ export function BookHistory() {
                       </>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(item.status)}
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(item.status)}
+                    </div>
+
+                    {(item.status === 'APPROVED' || item.status === 'RENTED' || item.status === 'LATE') && (
+                      <button
+                        onClick={() => handleReturn(item.id)}
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        Return Book
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

@@ -26,6 +26,7 @@ public class ReviewService {
     private final DonationRepository donationRepository;
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     // küfür listesini burada tutacağız
     private List<String> badWords = new ArrayList<>();
@@ -81,6 +82,10 @@ public class ReviewService {
         review.setHelpfulCount(0);
         updateBookRating(book);
         reviewRepository.save(review);
+
+        // Notify Admins
+        String message = String.format("New review added for book '%s' by %s.", book.getTitle(), user.getName());
+        notificationService.sendNotificationToRole(com.library.backend.entity.enums.RoleType.ADMIN, message);
     }
 
     private void updateBookRating(Book book) {
@@ -175,5 +180,44 @@ public class ReviewService {
 
     public List<Review> getReviewsByBookId(Long bookId) {
         return reviewRepository.findReviewsByBookId(bookId);
+    }
+
+    // --- ADMIN METHODS ---
+    public List<com.library.backend.dto.social.AdminReviewResponse> getAllReviewsForAdmin() {
+        List<Review> allReviews = reviewRepository.findAll();
+        return allReviews.stream()
+                .map(r -> new com.library.backend.dto.social.AdminReviewResponse(
+                        r.getId(),
+                        r.getUser().getUsername(),
+                        r.getBook().getTitle(),
+                        r.getBook().getId(),
+                        r.getStars(),
+                        r.getComment(),
+                        r.getCreatedDate(),
+                        r.isSpoiler()))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteReview(Long reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new RuntimeException("Review not found"));
+
+        Book book = review.getBook();
+
+        // Remove likes associated with this review
+        reviewLikeRepository.deleteAll(reviewLikeRepository.findAllByReviewId(reviewId));
+
+        User user = review.getUser();
+        String bookTitle = book.getTitle();
+
+        reviewRepository.delete(review);
+
+        // Notify User
+        String message = String.format("Your review for '%s' has been removed by an administrator.", bookTitle);
+        notificationService.sendSystemNotification(user, message);
+
+        // Update book rating stats
+        updateBookRating(book);
     }
 }

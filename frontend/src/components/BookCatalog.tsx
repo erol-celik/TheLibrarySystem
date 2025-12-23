@@ -226,20 +226,23 @@ export function BookCatalog({
         </div>
       ) : viewMode === 'grid' ? (
         /* Grid View */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {sortedBooks.map((book) => {
             const avgRating = getAverageRating(book);
             return (
               <div
                 key={book.id}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all cursor-pointer group transform hover:scale-105 duration-300"
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all cursor-pointer group transform hover:scale-102 duration-300"
                 onClick={() => onSelectBook(book)}
               >
-                <div className="relative h-80 overflow-hidden">
+                <div className="relative h-48 overflow-hidden">
                   <img
                     src={book.coverUrl}
                     alt={book.title}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=300&h=450&auto=format&fit=crop';
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
@@ -320,6 +323,9 @@ export function BookCatalog({
                       src={book.coverUrl}
                       alt={book.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=300&h=450&auto=format&fit=crop';
+                      }}
                     />
                     {book.isBorrowed ? (
                       <div className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
@@ -382,7 +388,7 @@ export function BookCatalog({
       )}
 
       {/* Pagination Bar */}
-      <div className="flex items-center justify-center gap-4 mt-8 pb-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+      <div className="flex items-center justify-center gap-4 mt-12 pb-10 border-t border-gray-200 dark:border-gray-700 pt-8">
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 0 || totalPages === 0}

@@ -8,6 +8,8 @@ import com.library.backend.entity.Book;
 import com.library.backend.entity.User;
 import com.library.backend.entity.Wallet;
 import com.library.backend.repository.UserRepository;
+import com.library.backend.repository.*;
+import com.library.backend.repository.UserRepository;
 import com.library.backend.repository.WalletRepository;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,10 +26,32 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
+    private final DonationRepository donationRepository;
+    private final FeedbackRepository feedbackRepository;
+    private final BookSuggestionRepository bookSuggestionRepository;
+    private final ReviewRepository reviewRepository;
+    private final RentalRepository rentalRepository;
+    private final NotificationRepository notificationRepository;
+    private final NotificationService notificationService;
 
-    public UserService(UserRepository userRepository, WalletRepository walletRepository) {
+    public UserService(UserRepository userRepository,
+            WalletRepository walletRepository,
+            DonationRepository donationRepository,
+            FeedbackRepository feedbackRepository,
+            BookSuggestionRepository bookSuggestionRepository,
+            ReviewRepository reviewRepository,
+            RentalRepository rentalRepository,
+            NotificationRepository notificationRepository,
+            NotificationService notificationService) {
         this.userRepository = userRepository;
         this.walletRepository = walletRepository;
+        this.donationRepository = donationRepository;
+        this.feedbackRepository = feedbackRepository;
+        this.bookSuggestionRepository = bookSuggestionRepository;
+        this.reviewRepository = reviewRepository;
+        this.rentalRepository = rentalRepository;
+        this.notificationRepository = notificationRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -97,8 +121,12 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("Yasaklanacak kullanıcı bulunamadı."));
 
         user.setBanned(!user.isBanned());
-
         userRepository.save(user);
+
+        // Notify User
+        String status = user.isBanned() ? "suspended" : "reactivated";
+        String message = String.format("Admin Alert: Your account has been %s.", status);
+        notificationService.sendSystemNotification(user, message);
 
     }
 
@@ -121,11 +149,89 @@ public class UserService {
 
     private AdminUserResponse mapToAdminUserResponse(User user) {
         AdminUserResponse response = new AdminUserResponse();
+        response.setId(user.getId());
         response.setName(user.getName());
         response.setEmail(user.getEmail());
         response.setJoinDate(user.getCreatedDate());
         response.setRole(user.getRoles());
+        response.setBanned(user.isBanned());
+        response.setPenaltyCount(user.getPenaltyCount());
 
         return response;
+    }
+
+    @Transactional
+    public void deleteUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 1. Delete Notifications (sent or received)
+        List<com.library.backend.entity.Notification> notifications = notificationRepository.findAll().stream()
+                .filter(n -> (n.getRecipientUser() != null && n.getRecipientUser().getId().equals(userId)) ||
+                        (n.getSenderUser() != null && n.getSenderUser().getId().equals(userId)))
+                .collect(Collectors.toList());
+        notificationRepository.deleteAll(notifications);
+
+        // 2. Delete Donations
+        List<com.library.backend.entity.Donation> donations = donationRepository.findAll().stream()
+                .filter(d -> d.getUser() != null && d.getUser().getId().equals(userId))
+                .collect(Collectors.toList());
+        donationRepository.deleteAll(donations);
+
+        // 3. Suggestions
+        List<com.library.backend.entity.BookSuggestion> suggestions = bookSuggestionRepository.findAll().stream()
+                .filter(s -> s.getSuggesterUser() != null && s.getSuggesterUser().getId().equals(userId))
+                .collect(Collectors.toList());
+        bookSuggestionRepository.deleteAll(suggestions);
+
+        // 4. Feedbacks
+        List<com.library.backend.entity.Feedback> feedbacks = feedbackRepository.findAll().stream()
+                .filter(f -> f.getUser() != null && f.getUser().getId().equals(userId))
+                .collect(Collectors.toList());
+        feedbackRepository.deleteAll(feedbacks);
+
+        // 5. Reviews
+        List<com.library.backend.entity.Review> reviews = reviewRepository.findAll().stream()
+                .filter(r -> r.getUser() != null && r.getUser().getId().equals(userId))
+                .collect(Collectors.toList());
+        reviewRepository.deleteAll(reviews);
+
+        // 6. Rentals / Loans
+        List<com.library.backend.entity.Rental> rentals = rentalRepository.findAll().stream()
+                .filter(r -> r.getUser() != null && r.getUser().getId().equals(userId))
+                .collect(Collectors.toList());
+        rentalRepository.deleteAll(rentals);
+
+        // 7. Wallet
+        walletRepository.findByUser(user).ifPresent(walletRepository::delete);
+
+        // Finally delete user
+        userRepository.delete(user);
+    }
+
+    @Transactional
+    public void updatePenalty(Long userId, int penaltyCount) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.setPenaltyCount(penaltyCount);
+        userRepository.save(user);
+
+        // Notify User
+        String message = String.format("Admin Alert: Your penalty count has been updated to %d.", penaltyCount);
+        notificationService.sendSystemNotification(user, message);
+    }
+
+    @Transactional
+    public void updateUserStatus(Long userId, String status) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if ("BLOCKED".equalsIgnoreCase(status)) {
+            user.setBanned(true);
+        } else if ("ACTIVE".equalsIgnoreCase(status)) {
+            user.setBanned(false);
+        }
+        userRepository.save(user);
     }
 }
