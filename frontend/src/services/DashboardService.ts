@@ -8,15 +8,32 @@ export interface HomepageStats {
     activeRentals: number;
 }
 
+export interface LibrarianStats {
+    borrowRequests: number;
+    returnRequests: number;
+    donationRequests: number;
+    totalBooks: number;
+    activeLoans: number;
+    overdueBooks: number;
+    booksBorrowedToday: number;
+    booksReturnedToday: number;
+    newDonationsToday: number;
+}
+
 export const DashboardService = {
-    // Genel istatistikleri getir (Üye sayısı, kitap sayısı vb.)
+    // Get public statistics (book count, user count, etc.)
     getPublicStats: async (): Promise<HomepageStats> => {
         const response = await api.get<HomepageStats>('/dashboard/public');
         return response.data;
     },
-    // Admin istatistiklerini getir (Ödünç alınan kitaplar vb.)
+    // Get admin statistics
     getAdminStats: async () => {
         const response = await api.get('/dashboard/admin');
+        return response.data;
+    },
+    // Get librarian statistics
+    getLibrarianStats: async (): Promise<LibrarianStats> => {
+        const response = await api.get<LibrarianStats>('/dashboard/librarian');
         return response.data;
     }
 };

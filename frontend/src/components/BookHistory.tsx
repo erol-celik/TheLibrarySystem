@@ -10,6 +10,7 @@ interface RentalHistoryItem {
   bookAuthor: string;
   bookImage: string;
   rentDate: string;
+  dueDate?: string;
   returnDate: string | null;
   status: 'REQUESTED' | 'APPROVED' | 'RENTED' | 'RETURNED' | 'LATE' | 'REJECTED';
   penaltyFee: number;
@@ -28,7 +29,7 @@ export function BookHistory() {
       const data = await RentalService.getUserRentals();
       setHistory(data);
     } catch (error) {
-      console.error("Geçmiş yüklenirken hata:", error);
+      console.error("Error loading history:", error);
     } finally {
       setLoading(false);
     }
@@ -118,7 +119,20 @@ export function BookHistory() {
 
                   <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-2">
                     <Calendar className="w-4 h-4" />
-                    <span>Rent Date: {item.rentDate}</span>
+                    {/* Hide rent date for REQUESTED status */}
+                    {item.status !== 'REQUESTED' && (
+                      <span>Rent Date: {item.rentDate}</span>
+                    )}
+                    {item.status === 'REQUESTED' && (
+                      <span className="italic">Pending approval</span>
+                    )}
+                    {/* Show due date for active rentals */}
+                    {(item.status === 'APPROVED' || item.status === 'RENTED' || item.status === 'LATE') && item.dueDate && (
+                      <>
+                        <span className="mx-1">|</span>
+                        <span className="text-orange-600 dark:text-orange-400 font-medium">Due: {item.dueDate}</span>
+                      </>
+                    )}
                     {item.returnDate && (
                       <>
                         <span className="mx-1">-</span>

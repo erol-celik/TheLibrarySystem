@@ -15,10 +15,20 @@ public class AuthController {
 
     private final AuthService authService;
 
-    // SADECE BU KALACAK. Register yok.
-    @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    // Role-specific login endpoints
+    @PostMapping("/login/user")
+    public ResponseEntity<AuthResponse> loginUser(@RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request, com.library.backend.entity.enums.RoleType.USER));
+    }
+
+    @PostMapping("/login/librarian")
+    public ResponseEntity<AuthResponse> loginLibrarian(@RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request, com.library.backend.entity.enums.RoleType.LIBRARIAN));
+    }
+
+    @PostMapping("/login/admin")
+    public ResponseEntity<AuthResponse> loginAdmin(@RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request, com.library.backend.entity.enums.RoleType.ADMIN));
     }
 
     @PostMapping("/register")

@@ -88,8 +88,8 @@ export default function App() {
             }
           }
 
-          // 3. Kütüphane verilerini çek
-          fetchLibraryData();
+          // 3. Fetch library data with user role context
+          fetchLibraryData(user);
 
         } catch (error) {
           console.error("Oturum yenilenemedi:", error);
@@ -129,8 +129,10 @@ export default function App() {
     }
   }, [isLoggedIn]);
 
-  // --- VERİ ÇEKME FONKSİYONU ---
-  const fetchLibraryData = async () => {
+  // --- DATA FETCHING FUNCTION ---
+  // Accepts optional user parameter to handle async state timing issues
+  const fetchLibraryData = async (user?: typeof currentUser) => {
+    const activeUser = user || currentUser; // Use passed user or fall back to state
     setIsLoadingData(true);
     try {
       const [catsData, dashboardData, newArrivalsData, topRatedData] = await Promise.all([
@@ -146,26 +148,40 @@ export default function App() {
       console.log('DEBUG: Categories fetched:', catsData);
 
       let adminStats = null;
-      if (currentUser?.role === 'admin') {
+      let librarianStats = null;
+
+      console.log('[DEBUG] Active user role:', activeUser?.role);
+
+      if (activeUser?.role === 'admin') {
+        console.log('[DEBUG] Fetching admin stats...');
         adminStats = await DashboardService.getAdminStats();
+        console.log('[DEBUG] Admin stats received:', adminStats);
+      } else if (activeUser?.role === 'librarian') {
+        console.log('[DEBUG] Fetching librarian stats...');
+        librarianStats = await DashboardService.getLibrarianStats();
+        console.log('[DEBUG] Librarian stats received:', librarianStats);
       }
 
-      setStats({
+      const mergedStats = {
         totalUsers: dashboardData.totalUsers,
         borrowedCount: dashboardData.activeRentals,
         totalBooks: dashboardData.totalBooks,
-        ...adminStats // Merge admin stats if available
-      });
+        ...adminStats,
+        ...librarianStats
+      };
+
+      console.log('[DEBUG] Merged stats for state:', mergedStats);
+      setStats(mergedStats);
 
       // Fetch unread notifications count
-      if (currentUser) {
+      if (activeUser) {
         const count = await NotificationService.getUnreadCount();
         setNotificationCount(count);
       }
 
     } catch (error) {
-      console.error("Veriler çekilemedi:", error);
-      toast.error("Veriler yüklenirken bir hata oluştu.");
+      console.error("Failed to fetch data:", error);
+      toast.error("Error loading data.");
     } finally {
       setIsLoadingData(false);
     }
@@ -272,19 +288,33 @@ export default function App() {
     const interval = setInterval(pollNotifications, 30000);
     return () => clearInterval(interval);
   }, [currentUser]);
-  // --- AUTH İŞLEMLERİ (Giriş / Kayıt / Çıkış) ---
+  // --- AUTH OPERATIONS (Login / Register / Logout) ---
 
-  const handleLogin = async (email: string, pass: string) => {
+  const handleLogin = async (email: string, pass: string, role: 'user' | 'librarian' | 'admin' = 'user') => {
     try {
-      await AuthService.login({ email, password: pass });
+      console.log(`[DEBUG] Attempting login for ${email} with role: ${role}`);
+      await AuthService.login({ email, password: pass }, role);
       const user = await UserService.getMe();
       setCurrentUser(user);
       setIsLoggedIn(true);
-      fetchLibraryData();
-      toast.success(`Tekrar hoş geldin, ${user.username}!`);
+
+      // Fetch wallet transactions for regular users (fixes persistence issue)
+      if (user.role === 'user') {
+        try {
+          const txList = await WalletService.getTransactions();
+          setTransactions(txList);
+        } catch (err) {
+          console.error("Failed to fetch transaction history:", err);
+        }
+      }
+
+      fetchLibraryData(user); // Pass user directly to avoid async state timing issue
+      toast.success(`Welcome back, ${user.username}!`);
       return true;
     } catch (error: any) {
-      toast.error("Giriş başarısız. Bilgilerinizi kontrol edin.");
+      console.error("[DEBUG] Login failed:", error);
+      const errorMessage = error.response?.data?.error || "Login failed. Please check your credentials.";
+      toast.error(errorMessage);
       return false;
     }
   };
@@ -297,17 +327,16 @@ export default function App() {
       // 2. Kayıt başarılıysa kullanıcının detaylı profilini çek
       const user = await UserService.getMe();
 
-      // 3. Stateleri güncelle (Otomatik giriş yap)
+      // 3. Update states (auto login)
       setCurrentUser(user);
       setIsLoggedIn(true);
       setShowRegister(false);
-      fetchLibraryData(); // Kitapları getir
+      fetchLibraryData(user); // Pass user for role-specific stats
 
-      toast.success("Hesabınız başarıyla oluşturuldu! Hoş geldiniz.");
+      toast.success("Account created successfully! Welcome.");
     } catch (error: any) {
-      console.error("Kayıt hatası:", error.response?.data);
-      // Hem .message hem de .error alanlarını kontrol ediyoruz
-      const errorMessage = error.response?.data?.message || error.response?.data?.error || "Kayıt sırasında bir hata oluştu.";
+      console.error("Registration error:", error.response?.data);
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || "Registration failed.";
       toast.error(errorMessage);
     }
   };
@@ -564,7 +593,7 @@ export default function App() {
               </div>
             </header>
 
-            <main className="p-6">
+            <main className="p-6 w-full">
               {isLoadingData ? (
                 <div className="flex justify-center items-center h-64">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
@@ -575,20 +604,24 @@ export default function App() {
                     <>
                       {currentUser.role === 'admin' ? (
                         <AdminHomePage
-                          {...stats} // Spread all stats (including admin specific ones)
+                          {...stats}
                           borrowedBooks={stats.borrowedCount}
+                          pendingRequests={stats.systemAlerts || 0}
                           onNavigateToUserManagement={() => setActiveTab('users')}
                           onNavigateToBooks={() => setActiveTab('catalog')}
                           onNavigateToFeedbacks={() => setActiveTab('feedbackManagement')}
                         />
                       ) : currentUser.role === 'librarian' ? (
                         <LibrarianHomePage
-                          // Librarian Logic: derive stats from available data or pass specific stats
-                          pendingBorrowRequests={rentalRequests.filter((r: any) => r.status === 'PENDING').length}
-                          // For other specific stats, we might not have them in App.tsx state yet, 
-                          // but we can pass what we have or let defaults take over
-                          totalBooksManaged={stats.totalBooks}
-                          activeLoans={stats.borrowedCount}
+                          pendingBorrowRequests={stats.borrowRequests || 0}
+                          pendingReturnRequests={stats.returnRequests || 0}
+                          pendingDonations={stats.donationRequests || 0}
+                          totalBooksManaged={stats.totalBooks || 0}
+                          activeLoans={stats.activeLoans || 0}
+                          overdueBooks={stats.overdueBooks || 0}
+                          booksBorrowedToday={stats.booksBorrowedToday || 0}
+                          booksReturnedToday={stats.booksReturnedToday || 0}
+                          newDonationsToday={stats.newDonationsToday || 0}
                           onNavigateToBorrows={() => setActiveTab('requests')}
                           onNavigateToReturns={() => setActiveTab('requests')}
                           onNavigateToDonations={() => setActiveTab('requests')}
@@ -663,6 +696,9 @@ export default function App() {
                       userRole={currentUser.role}
                       bio={currentUser.bio}
                       isBanned={currentUser.status === 'blocked'}
+                      memberSince={currentUser.createdDate}
+                      totalBorrowedCount={currentUser.totalBorrowedCount || 0}
+                      activeLoanCount={currentUser.activeLoanCount || 0}
                       onUpdateProfile={handleUpdateProfile}
                     />
                   )}

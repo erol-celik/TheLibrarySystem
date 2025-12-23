@@ -182,22 +182,14 @@ export function BookDetailModal({
 
   const handlePurchase = async () => {
     try {
-      const response = await fetch(`/api/books/${book.id}/purchase`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (response.ok) {
-        toast.success("Book purchased successfully! Refreshing...");
-        if (onPurchase) onPurchase(); // Callback to refresh data/balance
-        onClose(); // Close modal to allow re-opening with fresh data
-      } else {
-        const errorData = await response.text();
-        toast.error(errorData || "Failed to purchase book.");
-      }
-    } catch (error) {
-      toast.error("An error occurred during purchase.");
+      const api = (await import('../api/axiosConfig')).default;
+      await api.post(`/books/${book.id}/purchase`);
+      toast.success("Book purchased successfully! Refreshing...");
+      if (onPurchase) onPurchase(); // Callback to refresh data/balance
+      onClose(); // Close modal to allow re-opening with fresh data
+    } catch (error: any) {
+      const errorMessage = error.response?.data || "Failed to purchase book.";
+      toast.error(errorMessage);
     }
   };
 

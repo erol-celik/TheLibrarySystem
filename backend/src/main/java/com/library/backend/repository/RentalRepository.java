@@ -7,23 +7,28 @@ import java.util.List;
 
 public interface RentalRepository extends JpaRepository<Rental, Long> {
 
-    // kullanıcının tüm geçmişi
+    // User's rental history
     List<Rental> findByUserId(Long userId);
 
-    // aktif kiralamalar (liste lazım olursa)
+    // Active rentals for a user (list)
     List<Rental> findByUserIdAndStatus(Long userId, RentalStatus status);
 
-    // aktif kiralama var mı kontrolü (performans için count sorgusu atar)
+    // Check if user has active rental (performance: uses count query)
     boolean existsByUserIdAndStatus(Long userId, RentalStatus status);
 
     boolean existsByUserIdAndBookId(Long userId, Long bookId);
 
-    // 1. Şu an dışarıda olan (henüz iade edilmemiş) kitap sayısı
-    long countByStatus(com.library.backend.entity.enums.RentalStatus status);
+    // Count currently borrowed books (not yet returned)
+    long countByStatus(RentalStatus status);
 
-    // 2. Teslim tarihi geçmiş (Due Date < Bugün) VE hala iade edilmemiş (APPROVED) kitaplar
+    // Overdue rentals (Due Date < Today AND status is APPROVED)
     @org.springframework.data.jpa.repository.Query("SELECT r FROM Rental r WHERE r.dueDate < CURRENT_DATE AND r.status = 'APPROVED'")
     List<Rental> findOverdueRentals();
 
     List<Rental> findAllByStatus(RentalStatus status);
+
+    // User-specific statistics
+    long countByUserId(Long userId);
+
+    long countByUserIdAndStatus(Long userId, RentalStatus status);
 }

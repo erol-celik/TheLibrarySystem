@@ -25,13 +25,13 @@ export function LoginScreen({ onLogin, onRegister }: LoginScreenProps) {
         // await ile cevabın gelmesini bekle
         const success = await onLogin(email.trim(), password.trim(), selectedRole);
         if (!success) {
-          setError('Giriş başarısız. Email veya şifre hatalı.');
+          setError('Login failed. Invalid email or password.');
         }
       } catch (err: any) {
         if (err.response && err.response.data && typeof err.response.data === 'string') {
           setError(err.response.data);
         } else {
-          setError('Bir hata oluştu. Lütfen tekrar deneyin.');
+          setError('An error occurred. Please try again.');
         }
       } finally {
         setIsLoading(false); // Butonu aç
@@ -130,8 +130,8 @@ export function LoginScreen({ onLogin, onRegister }: LoginScreenProps) {
                       type="button"
                       onClick={() => setSelectedRole(role.id)}
                       className={`p-4 rounded-2xl transition-all text-center ${isSelected
-                          ? `${role.color} text-white shadow-lg scale-105`
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? `${role.color} text-white shadow-lg scale-105`
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                     >
                       <Icon className="w-8 h-8 mx-auto mb-2" />

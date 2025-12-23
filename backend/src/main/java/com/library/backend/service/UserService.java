@@ -58,16 +58,16 @@ public class UserService {
     public UserProfileResponse getMyProfile(String authenticatedUserEmail) {
 
         User user = userRepository.findByEmail(authenticatedUserEmail)
-                .orElseThrow(() -> new UsernameNotFoundException("Aktif kullanıcı bulunamadı."));
+                .orElseThrow(() -> new UsernameNotFoundException("Active user not found."));
 
         if (user.isBanned()) {
-            System.out.println("Hesabınız yönetici tarafından askıya alınmıştır.");
-            throw new BadCredentialsException("Hesabınız yönetici tarafından askıya alınmıştır.");
+            System.out.println("Your account has been suspended by an administrator.");
+            throw new BadCredentialsException("Your account has been suspended by an administrator.");
         }
-        // Cüzdan bilgisini çekme
+        // Get wallet information
         BigDecimal balance = walletRepository.findByUser(user)
                 .map(Wallet::getBalance)
-                .orElse(BigDecimal.ZERO); // Cüzdan yoksa 0 dön
+                .orElse(BigDecimal.ZERO);
 
         UserProfileResponse response = new UserProfileResponse();
         response.setId(user.getId());
@@ -78,12 +78,21 @@ public class UserService {
         response.setWalletBalance(balance);
         response.setAvatarUrl(user.getAvatarUrl());
         response.setBio(user.getBio());
-        response.setPhone(user.getPhoneNumber()); // Eğer DTO'da varsa
+        response.setPhone(user.getPhoneNumber());
         response.setAddress(user.getAddress());
         if (!user.getRoles().isEmpty()) {
-            // BURAYI DA DÜZELTMELİSİN!
+            // Set role with ROLE_ prefix
             response.setRole("ROLE_" + user.getRoles().iterator().next().name().toUpperCase());
         }
+        response.setCreatedDate(user.getCreatedDate());
+
+        // Calculate rental statistics
+        long totalBorrowed = rentalRepository.countByUserId(user.getId());
+        long activeLoans = rentalRepository.countByUserIdAndStatus(user.getId(),
+                com.library.backend.entity.enums.RentalStatus.APPROVED);
+        response.setTotalBorrowedCount(totalBorrowed);
+        response.setActiveLoanCount(activeLoans);
+
         return response;
     }
 
@@ -91,19 +100,18 @@ public class UserService {
     public UserProfileResponse updateMyProfile(String authenticatedUserEmail, UserProfileUpdateRequest request) {
 
         User user = userRepository.findByEmail(authenticatedUserEmail)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı."));
+                .orElseThrow(() -> new RuntimeException("User not found."));
 
         if (user.isBanned()) {
-            System.out.println("Hesabınız yönetici tarafından askıya alınmıştır.");
-            throw new BadCredentialsException("Hesabınız yönetici tarafından askıya alınmıştır.");
+            System.out.println("Your account has been suspended by an administrator.");
+            throw new BadCredentialsException("Your account has been suspended by an administrator.");
         }
-        // Kullanıcı adı güncelleme (boş veya null değilse)
+        // Update username (if not empty or null)
         if (request.getName() != null && !request.getName().isBlank()) {
             user.setName(request.getName());
         }
 
-        // Avatar ve Bio alanlarını güncelleme (null ile göndermek temizlemek anlamına
-        // gelir)
+        // Update avatar and bio fields (null means clear the field)
         user.setAvatarUrl(request.getProfilePictureUrl());
         user.setBio(request.getBio());
         user.setPhoneNumber(request.getPhoneNumber());
@@ -111,14 +119,14 @@ public class UserService {
 
         userRepository.save(user);
 
-        // Güncel profili döndürürken Wallet ve Badge bilgileri de çekilir
+        // Return updated profile with Wallet and Badge info
         return getMyProfile(user.getEmail());
     }
 
     @Transactional
     public void banUser(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Yasaklanacak kullanıcı bulunamadı."));
+                .orElseThrow(() -> new RuntimeException("User to be banned not found."));
 
         user.setBanned(!user.isBanned());
         userRepository.save(user);

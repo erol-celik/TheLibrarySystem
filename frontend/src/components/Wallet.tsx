@@ -225,7 +225,7 @@ export function Wallet({ balance, onAddFunds, transactions = [], currentUsername
                     <div>
                       <p className="text-gray-900 dark:text-white font-semibold">{transaction.description}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {transaction.date || transaction.createdAt ? new Date(transaction.date || transaction.createdAt!).toLocaleString('tr-TR') : "Tarih yok"}
+                        {transaction.date || transaction.createdAt ? new Date(transaction.date || transaction.createdAt!).toLocaleString('en-US') : "No date"}
                       </p>
                     </div>
                   </div>

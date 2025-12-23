@@ -1,10 +1,10 @@
 package com.library.backend.dto.user;
 
-
 import com.library.backend.entity.enums.RoleType;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Data
@@ -20,8 +20,11 @@ public class UserProfileResponse {
     String address;
     String phone;
     private String role;
+    private LocalDateTime createdDate;
 
-
+    // Dynamic account statistics
+    private long totalBorrowedCount;
+    private long activeLoanCount;
 
     public UserProfileResponse() {
     }

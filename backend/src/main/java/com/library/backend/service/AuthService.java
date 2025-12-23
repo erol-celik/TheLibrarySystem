@@ -50,22 +50,43 @@ public class AuthService {
                                 .build();
         }
 
-        public AuthResponse login(LoginRequest request) {
-                System.out.println("--- [DEBUG] Login: " + request.getEmail());
+        public AuthResponse login(LoginRequest request, com.library.backend.entity.enums.RoleType expectedRole) {
+                System.out.println("--- [DEBUG] Login: " + request.getEmail() + " with expected role: " + expectedRole);
 
-                // 1. Şifre Kontrolü
-                authenticationManager.authenticate(
-                                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+                try {
+                        // 1. Password verification
+                        authenticationManager.authenticate(
+                                        new UsernamePasswordAuthenticationToken(request.getEmail(),
+                                                        request.getPassword()));
+                } catch (Exception e) {
+                        System.out.println("--- [DEBUG] Authentication failed: " + e.getMessage());
+                        throw new RuntimeException("Invalid email or password.");
+                }
 
-                // 2. Kullanıcıyı Bul
+                // 2. Find user
                 var user = userRepository.findByEmail(request.getEmail())
-                                .orElseThrow(() -> new RuntimeException("Kullanıcı yok"));
+                                .orElseThrow(() -> new RuntimeException("User not found"));
 
-                // 3. Token Üret
+                // 3. Validate role - check if user has ANY roles first
+                if (user.getRoles() == null || user.getRoles().isEmpty()) {
+                        System.out.println("--- [DEBUG] User has no roles assigned: " + request.getEmail());
+                        throw new org.springframework.security.access.AccessDeniedException(
+                                        "Access Denied: Please use the correct login portal for your role.");
+                }
+
+                // 4. Validate that user has the expected role
+                if (!user.getRoles().contains(expectedRole)) {
+                        System.out.println("--- [DEBUG] Role mismatch. User roles: " + user.getRoles() + ", Expected: "
+                                        + expectedRole);
+                        throw new org.springframework.security.access.AccessDeniedException(
+                                        "Access Denied: Please use the correct login portal for your role.");
+                }
+
+                // 5. Generate token
                 var token = jwtService.generateToken(user);
 
-                // 4. Rolü Belirle
-                String roleName = user.getRoles().isEmpty() ? "USER" : user.getRoles().iterator().next().name();
+                // 6. Determine role name
+                String roleName = expectedRole.name();
 
                 return AuthResponse.builder()
                                 .token(token)

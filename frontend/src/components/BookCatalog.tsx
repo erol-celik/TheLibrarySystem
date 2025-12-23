@@ -226,13 +226,13 @@ export function BookCatalog({
         </div>
       ) : viewMode === 'grid' ? (
         /* Grid View */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
           {sortedBooks.map((book) => {
             const avgRating = getAverageRating(book);
             return (
               <div
                 key={book.id}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all cursor-pointer group transform hover:scale-102 duration-300"
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all cursor-pointer group min-w-0"
                 onClick={() => onSelectBook(book)}
               >
                 <div className="relative h-48 overflow-hidden">

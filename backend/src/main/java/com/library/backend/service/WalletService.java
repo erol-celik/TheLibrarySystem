@@ -23,15 +23,15 @@ public class WalletService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
-    // 1. Para Yükleme (Kullanıcı yapar)
+    // 1. Deposit funds (User action)
     @Transactional
     public BigDecimal depositFunds(String userEmail, BigDecimal amount) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException("Yüklenecek miktar 0'dan büyük olmalı.");
+            throw new RuntimeException("Deposit amount must be greater than 0.");
         }
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı."));
+                .orElseThrow(() -> new RuntimeException("User not found."));
 
         Wallet wallet = walletRepository.findByUser(user)
                 .orElseGet(() -> createWalletForUser(user)); // Cüzdan yoksa oluştur
@@ -55,24 +55,24 @@ public class WalletService {
         return wallet.getBalance();
     }
 
-    // 2. Para Çekme (Sistem yapar - Kiralama Servisi çağırır)
+    // 2. Withdraw funds (System action - called by Rental Service)
     @Transactional
     public void withdrawFunds(User user, BigDecimal amount) {
         Wallet wallet = walletRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Cüzdan bulunamadı."));
+                .orElseThrow(() -> new RuntimeException("Wallet not found."));
 
         if (wallet.getBalance().compareTo(amount) < 0) {
-            throw new RuntimeException("Yetersiz Bakiye! Lütfen cüzdanınıza para yükleyin.");
+            throw new RuntimeException("Insufficient Balance! Please add funds to your wallet.");
         }
 
-        // Bakiyeyi düş
+        // Deduct balance
         wallet.setBalance(wallet.getBalance().subtract(amount));
         walletRepository.save(wallet);
 
-        // Loglama işlemi RentalService içinde transaction tipine göre yapılacak
+        // Transaction logging is done in RentalService based on transaction type
     }
 
-    // Yardımcı: Transaction Kaydı
+    // Helper: Transaction Record
     public void saveTransaction(Wallet wallet, TransactionType type, BigDecimal amount, Long relatedId) {
         WalletTransaction trx = new WalletTransaction();
         trx.setWallet(wallet);
@@ -89,7 +89,7 @@ public class WalletService {
         }
     }
 
-    // Yardımcı: Cüzdan Oluşturma
+    // Helper: Create Wallet
     private Wallet createWalletForUser(User user) {
         Wallet wallet = new Wallet();
         wallet.setUser(user);
@@ -97,7 +97,7 @@ public class WalletService {
         return walletRepository.save(wallet);
     }
 
-    // Kullanıcının bakiyesini getir
+    // Get user balance
     public BigDecimal getBalance(String email) {
         User user = userRepository.findByEmail(email).orElseThrow();
         return walletRepository.findByUser(user)
@@ -105,10 +105,10 @@ public class WalletService {
                 .orElse(BigDecimal.ZERO);
     }
 
-    // 4. Kullanıcının işlem geçmişini getir
+    // 4. Get user transaction history
     public List<WalletTransaction> getTransactions(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı."));
+                .orElseThrow(() -> new RuntimeException("User not found."));
 
         // If wallet doesn't exist, return empty list instead of error
         // A missing wallet simply means no transactions have occurred yet

@@ -81,7 +81,15 @@ public class RentalController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/rentals/requests") // App.tsx'den çağırdığımız adres
+    // Librarian approves a return request
+    @PostMapping("/rentals/{id}/approve-return")
+    @PreAuthorize("hasAuthority('ROLE_LIBRARIAN')")
+    public ResponseEntity<RentalResponse> approveReturn(@PathVariable Long id) {
+        RentalResponse response = rentalService.approveReturn(id);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/rentals/requests")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_LIBRARIAN')")
     public ResponseEntity<List<RentalResponse>> getAllRequests() {
         return ResponseEntity.ok(rentalService.showAllRentalRequest());
