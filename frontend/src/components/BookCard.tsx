@@ -1,4 +1,3 @@
-import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Book, User, Calendar } from 'lucide-react';
 
 interface BookCardProps {
@@ -37,14 +36,59 @@ export function BookCard({ book, onBorrow, onReturn, onReserve, userRole, curren
   const canReturn = userRole === 'librarian' || userRole === 'admin' || 
                     (userRole === 'user' && book.borrowedBy === currentUsername);
 
+  // Helper to generate a deterministic gradient based on title and category
+  const getCoverGradient = (title: string, category: string) => {
+    const str = title + category;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    // Some nice modern gradients
+    const gradients = [
+      'from-blue-600 to-indigo-900',
+      'from-emerald-500 to-teal-900',
+      'from-orange-500 to-red-800',
+      'from-pink-500 to-rose-900',
+      'from-purple-600 to-violet-900',
+      'from-cyan-600 to-blue-900',
+      'from-amber-600 to-orange-900',
+      'from-fuchsia-600 to-purple-900',
+      'from-slate-700 to-slate-900',
+      'from-red-600 to-red-900'
+    ];
+    
+    const index = Math.abs(hash) % gradients.length;
+    return gradients[index];
+  };
+
+  const coverGradient = getCoverGradient(book.title, book.genres?.[0] || '');
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all">
-      <div className="relative h-64 bg-gray-200 dark:bg-gray-700">
-        <ImageWithFallback
-          src={book.coverUrl}
-          alt={book.title}
-          className="w-full h-full object-cover"
-        />
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+      <div className="relative aspect-[2/3] w-full group">
+        {book.coverUrl ? (
+          <img
+            src={book.coverUrl}
+            alt={book.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // Hide image if it fails to load so the fallback gradient shows
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        ) : null}
+        
+        {/* Dynamic Typography Cover (Fallback or Base) */}
+        <div className={`absolute inset-0 bg-gradient-to-br ${coverGradient} flex flex-col items-center justify-center p-6 text-center ${book.coverUrl ? '-z-10' : 'z-0'}`}>
+          <h2 className="text-white font-bold text-xl uppercase tracking-wider leading-snug drop-shadow-lg mb-2" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+            {book.title}
+          </h2>
+          <p className="text-white/80 font-medium text-sm tracking-widest uppercase mt-4">
+            {book.author}
+          </p>
+        </div>
+
         {book.isBorrowed && (
           <div className="absolute top-2 right-2 bg-red-500 text-white px-3 py-1 rounded-full flex items-center gap-1">
             <User className="w-4 h-4" />

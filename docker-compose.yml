@@ -32,7 +32,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysqldb:3306/library_db_v2?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
     networks:
       - library-network
     depends_on:

@@ -23,6 +23,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         // Çeviri yok, mapping yok. Direkt User objesi UserDetails olduğu için return edilebilir.
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Kullanıcı yok: " + email));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
     }
 }

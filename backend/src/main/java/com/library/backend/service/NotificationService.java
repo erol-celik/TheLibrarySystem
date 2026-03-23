@@ -159,7 +159,7 @@ public class NotificationService {
         UserMinimalResponse response = new UserMinimalResponse();
         response.setId(user.getId());
         response.setName(user.getName());
-        response.setProfipePicture(user.getAvatarUrl());
+        response.setProfilePicture(user.getAvatarUrl());
         return response;
     }
 

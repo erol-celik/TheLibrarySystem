@@ -23,7 +23,8 @@ public class JwtService {
     // BU ÇOK GİZLİ BİR ANAHTARDIR. Normalde .env dosyasında saklanır.
     // Şimdilik buraya uzun ve karmaşık bir metin yazıyoruz (Hex formatında 256-bit key önerilir)
     // Örnek olarak rastgele üretilmiş güvenli bir key:
-    private static final String SECRET_KEY = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
+    @Value("${application.security.jwt.secret-key}")
+    private String secretKey;
 
     // 1. Token'dan Kullanıcı Adını (Email) Çıkarma
     public String extractUsername(String token) {
@@ -85,7 +86,7 @@ public class JwtService {
     }
 
     private Key getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+        byte[] keyBytes = secretKey.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

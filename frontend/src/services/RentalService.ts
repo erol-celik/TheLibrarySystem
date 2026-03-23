@@ -2,7 +2,7 @@ import api from '../api/axiosConfig';
 
 export const RentalService = {
     rentBook: async (bookId: string) => {
-        // Backend'deki /api/rentals/rent endpoint'ini çağırır
+        // Calls the /api/rentals/rent endpoint on the backend
         const response = await api.post('/rentals', { bookId });
         return response.data;
     },
@@ -12,19 +12,19 @@ export const RentalService = {
         return response.data;
     },
 
-    // Tüm bekleyen talepleri getir (Librarian/Admin için)
+    // Get all pending requests (for Librarian/Admin)
     getAllRequests: async () => {
-        const response = await api.get('/rentals/requests'); // Fixed: Removed double /api
+        const response = await api.get('/rentals/requests');
         return response.data;
     },
 
-    // Talebi onayla
+    // Approve request
     approveRequest: async (rentalId: number) => {
         const response = await api.post(`/rentals/approve/${rentalId}`);
         return response.data;
     },
 
-    // Talebi reddet
+    // Reject request
     rejectRequest: async (rentalId: number) => {
         const response = await api.post(`/rentals/reject/${rentalId}`);
         return response.data;

@@ -123,6 +123,7 @@ export const BookService = {
 
     getTopRatedBooks: async (): Promise<Book[]> => {
         const response = await api.get('/books/top-rated');
+        console.log("Top Rated Books Response:", response.data);
         return response.data.map(BookService.mapToBook);
     },
 
