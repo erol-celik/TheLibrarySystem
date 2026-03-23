@@ -90,8 +90,8 @@ public class DonationService {
             }
 
             // C. BİLDİRİM GÖNDER
-            String message = "Your donation for '" + donation.getBookTitle()
-                    + "' has been accepted. Thank you for your support!";
+            String message = "Your book donation '" + donation.getBookTitle()
+                    + "' has been approved. Thank you for your contribution!";
             notificationService.sendNotificationById(librarianId, donation.getUser().getId(), message);
 
         } else {

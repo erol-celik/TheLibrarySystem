@@ -193,6 +193,33 @@ export function BookDetailModal({
     }
   };
 
+  // Helper to generate a deterministic gradient based on title and category
+  const getCoverGradient = (title: string, category: string) => {
+    const str = title + category;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    const gradients = [
+      'from-blue-600 to-indigo-900',
+      'from-emerald-500 to-teal-900',
+      'from-orange-500 to-red-800',
+      'from-pink-500 to-rose-900',
+      'from-purple-600 to-violet-900',
+      'from-cyan-600 to-blue-900',
+      'from-amber-600 to-orange-900',
+      'from-fuchsia-600 to-purple-900',
+      'from-slate-700 to-slate-900',
+      'from-red-600 to-red-900'
+    ];
+    
+    const index = Math.abs(hash) % gradients.length;
+    return gradients[index];
+  };
+
+  const coverGradient = getCoverGradient(book.title, book.categoryName?.[0] || '');
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -210,11 +237,28 @@ export function BookDetailModal({
           <div className="grid md:grid-cols-2 gap-8 mb-8">
             {/* Left: Image */}
             <div>
-              <img
-                src={book.coverUrl}
-                alt={book.title}
-                className="w-full h-96 object-cover rounded-xl shadow-lg"
-              />
+              <div className="relative aspect-[2/3] w-full rounded-xl shadow-lg overflow-hidden group">
+                {book.coverUrl ? (
+                  <img
+                    src={book.coverUrl}
+                    alt={book.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : null}
+                
+                {/* Dynamic Typography Cover (Fallback or Base) */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${coverGradient} flex flex-col items-center justify-center p-8 text-center ${book.coverUrl ? '-z-10' : 'z-0'}`}>
+                  <h2 className="text-white font-bold text-3xl uppercase tracking-wider leading-tight drop-shadow-xl mb-4" style={{ textShadow: '0 4px 8px rgba(0,0,0,0.6)' }}>
+                    {book.title}
+                  </h2>
+                  <p className="text-white/90 font-medium text-lg tracking-widest uppercase mt-6">
+                    {book.author}
+                  </p>
+                </div>
+              </div>
               {book.bookType !== 'PHYSICAL' && (
                 <div className="mt-4 bg-purple-50 dark:bg-purple-900/30 rounded-lg p-4">
                   <div className="flex items-center justify-between">

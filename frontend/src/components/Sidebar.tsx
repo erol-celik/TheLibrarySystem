@@ -1,14 +1,15 @@
 import { Library, Shield, User, Wallet, Bell, BookOpen, LogOut, Home, MessageSquare, Gift, ClipboardList, BookMarked } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface SidebarProps {
   userRole: 'user' | 'librarian' | 'admin';
-  activeTab: string;
-  onTabChange: (tab: string) => void;
   onLogout: () => void;
   notificationCount: number;
 }
 
-export function Sidebar({ userRole, activeTab, onTabChange, onLogout, notificationCount }: SidebarProps) {
+export function Sidebar({ userRole, onLogout, notificationCount }: SidebarProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
   // Role-based colors
   const roleColors = {
     user: {
@@ -37,31 +38,31 @@ export function Sidebar({ userRole, activeTab, onTabChange, onLogout, notificati
   const colors = roleColors[userRole];
 
   const userMenuItems = [
-    { id: 'home', icon: Home, label: 'Home' },
-    { id: 'catalog', icon: Library, label: 'Book Catalog' },
-    { id: 'account', icon: User, label: 'Account' },
-    { id: 'wallet', icon: Wallet, label: 'My Wallet' },
-    { id: 'notifications', icon: Bell, label: 'Notifications', badge: notificationCount },
-    { id: 'history', icon: BookOpen, label: 'Book History' },
-    { id: 'feedback', icon: MessageSquare, label: 'Feedback' },
-    { id: 'donation', icon: Gift, label: 'Donate Book' },
+    { id: 'home', path: '/', icon: Home, label: 'Home' },
+    { id: 'catalog', path: '/catalog', icon: Library, label: 'Book Catalog' },
+    { id: 'account', path: '/profile', icon: User, label: 'Account' },
+    { id: 'wallet', path: '/wallet', icon: Wallet, label: 'My Wallet' },
+    { id: 'notifications', path: '/notifications', icon: Bell, label: 'Notifications', badge: notificationCount },
+    { id: 'history', path: '/history', icon: BookOpen, label: 'Book History' },
+    { id: 'feedback', path: '/feedback', icon: MessageSquare, label: 'Feedback' },
+    { id: 'donation', path: '/donation', icon: Gift, label: 'Donate Book' },
   ];
 
   const librarianMenuItems = [
-    { id: 'home', icon: Home, label: 'Home' },
-    { id: 'catalog', icon: Library, label: 'Book Catalog' },
-    { id: 'bookManagement', icon: BookMarked, label: 'Book Management' },
-    { id: 'requests', icon: ClipboardList, label: 'Requests' },
-    { id: 'notifications', icon: Bell, label: 'Notifications', badge: notificationCount },
+    { id: 'home', path: '/', icon: Home, label: 'Home' },
+    { id: 'catalog', path: '/catalog', icon: Library, label: 'Book Catalog' },
+    { id: 'bookManagement', path: '/book-management', icon: BookMarked, label: 'Book Management' },
+    { id: 'requests', path: '/requests', icon: ClipboardList, label: 'Requests' },
+    { id: 'notifications', path: '/notifications', icon: Bell, label: 'Notifications', badge: notificationCount },
   ];
 
   const adminMenuItems = [
-    { id: 'home', icon: Home, label: 'Home' },
-    { id: 'catalog', icon: Library, label: 'Book Catalog' },
-    { id: 'admin', icon: MessageSquare, label: 'Comments Panel' },
-    { id: 'users', icon: User, label: 'User Management' },
-    { id: 'feedbackManagement', icon: MessageSquare, label: 'Feedbacks' },
-    { id: 'notifications', icon: Bell, label: 'Notifications', badge: notificationCount },
+    { id: 'home', path: '/', icon: Home, label: 'Home' },
+    { id: 'catalog', path: '/catalog', icon: Library, label: 'Book Catalog' },
+    { id: 'admin', path: '/comments', icon: MessageSquare, label: 'Comments Panel' },
+    { id: 'users', path: '/users', icon: User, label: 'User Management' },
+    { id: 'feedbackManagement', path: '/feedback-management', icon: MessageSquare, label: 'Feedbacks' },
+    { id: 'notifications', path: '/notifications', icon: Bell, label: 'Notifications', badge: notificationCount },
   ];
 
   const menuItems =
@@ -86,12 +87,12 @@ export function Sidebar({ userRole, activeTab, onTabChange, onLogout, notificati
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id;
+          const isActive = location.pathname === item.path;
 
           return (
             <button
               key={item.id}
-              onClick={() => onTabChange(item.id)}
+              onClick={() => navigate(item.path)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
                 ? `${colors.bg} text-white shadow-lg`
                 : `text-gray-600 dark:text-gray-300 ${colors.hoverBg}`

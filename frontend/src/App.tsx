@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Toaster, toast } from 'sonner';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { Sun, Moon } from 'lucide-react';
 
 // Componentler
 import { LoginScreen } from './components/LoginScreen';
@@ -35,12 +37,14 @@ import { Notifications } from './components/Notifications';
 import { FeedbackService, Feedback } from './services/FeedbackService';
 
 
-export default function App() {
+function AppContent() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   // --- STATE (Hafıza Alanları) ---
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [showRegister, setShowRegister] = useState(false);
-  const [activeTab, setActiveTab] = useState('home');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [allUsers, setAllUsers] = useState<UserAccount[]>([]);
 
@@ -84,24 +88,24 @@ export default function App() {
               const txList = await WalletService.getTransactions();
               setTransactions(txList);
             } catch (err) {
-              console.error("Cüzdan geçmişi çekilemedi:", err);
-            }
+            console.error("Failed to fetch wallet history:", err);
           }
-
-          // 3. Fetch library data with user role context
-          fetchLibraryData(user);
-
-        } catch (error) {
-          console.error("Oturum yenilenemedi:", error);
-          AuthService.logout();
         }
+
+        // 3. Fetch library data with user role context
+        await fetchLibraryData(user);
+
+      } catch (error) {
+        console.error("Failed to renew session:", error);
+        AuthService.logout();
       }
-    };
-    initApp();
-  }, []);
-  useEffect(() => {
-    console.log("Mevcut Kullanıcı Rolü:", currentUser ? currentUser.role : "Guest");
-  }, [currentUser]);
+    }
+  };
+  initApp();
+}, []);
+useEffect(() => {
+  console.log("Current User Role:", currentUser ? currentUser.role : "Guest");
+}, [currentUser]);
   useEffect(() => {
     // Unified Search Automation
     // Automatically triggers search when filters change
@@ -114,13 +118,13 @@ export default function App() {
 
   // Reset Page logic is now inside handleSearch (Force Sync)
   useEffect(() => {
-    if (activeTab === 'requests' && (currentUser?.role === 'librarian' || currentUser?.role === 'admin')) {
+    if (location.pathname === '/requests' && (currentUser?.role === 'librarian' || currentUser?.role === 'admin')) {
       RentalService.getAllRequests().then(setRentalRequests);
     }
-    if (activeTab === 'notifications') {
+    if (location.pathname === '/notifications') {
       fetchNotificationsRaw();
     }
-  }, [activeTab, currentUser]);
+  }, [location.pathname, currentUser]);
 
   // Sayfa İlk Yüklendiğinde Bildirim Sayısını Getir (Sadece Giriş Yapılmışsa)
   useEffect(() => {
@@ -222,8 +226,8 @@ export default function App() {
       }
 
     } catch (error) {
-      console.error("Arama hatası:", error);
-      toast.error("Kitaplar aranırken bir hata oluştu.");
+      console.error("Search error:", error);
+      toast.error("An error occurred while searching for books.");
     } finally {
       setIsLoadingData(false);
     }
@@ -244,13 +248,13 @@ export default function App() {
   };
 
   useEffect(() => {
-    // console.log("App.tsx Rendered. ActiveTab:", activeTab);
-  }, [activeTab]);
+    // console.log("App.tsx Rendered. Path:", location.pathname);
+  }, [location.pathname]);
 
   const handleBorrow = async (bookId: string) => {
     if (!bookId || bookId === "undefined") {
-      console.error("HATA: Kitap ID'si bulunamadı!", bookId);
-      toast.error("Kitap ID bilgisi eksik. Lütfen sayfayı yenileyip tekrar deneyin.");
+      console.error("ERROR: Book ID not found!", bookId);
+      toast.error("Book ID is missing. Please refresh the page and try again.");
       return;
     }
 
@@ -258,11 +262,10 @@ export default function App() {
 
     setIsLoadingData(true);
     try {
-      console.log("Kiralama isteği gönderiliyor. Kitap ID:", bookId);
+      console.log("Sending borrow request. Book ID:", bookId);
       await RentalService.rentBook(bookId);
-      toast.success("Kiralama talebiniz oluşturuldu! Kütüphaneci onayından sonra kitabınız aktifleşecek.");
+      toast.success("Borrow request submitted successfully! Your book will be active after librarian approval.");
 
-      await fetchLibraryData();
       setSelectedBook(null); // Modalı kapat
     } finally {
       setIsLoadingData(false);
@@ -346,31 +349,29 @@ export default function App() {
     setIsLoggedIn(false);
     setCurrentUser(null);
     setBooks([]);
-    toast.info("Oturum kapatıldı.");
+    toast.info("Logged out successfully.");
   };
 
   // Onaylama fonksiyonu
   const handleApprove = async (id: number) => {
     try {
       await RentalService.approveRequest(id);
-      toast.success("Talep onaylandı!");
+      toast.success("Request approved!");
       const updated = await RentalService.getAllRequests();
       setRentalRequests(updated);
-      fetchLibraryData();
     } catch (error) {
-      toast.error("Onaylama başarısız.");
+      toast.error("Approval failed.");
     }
   };
 
   const handleReject = async (id: number) => {
     try {
       await RentalService.rejectRequest(id);
-      toast.success("Talep reddedildi!");
+      toast.success("Request rejected!");
       const updated = await RentalService.getAllRequests();
       setRentalRequests(updated);
-      fetchLibraryData();
     } catch (error) {
-      toast.error("Reddetme başarısız.");
+      toast.error("Rejection failed.");
     }
   };
 
@@ -382,7 +383,7 @@ export default function App() {
       // FIX: Preserve existing state but update user data
       setCurrentUser(prev => prev ? ({ ...prev, ...updatedUser }) : updatedUser);
     } catch (error) {
-      console.error("Bakiye güncellenirken hata:", error);
+      console.error("Error updating balance:", error);
     }
   };
 
@@ -397,10 +398,10 @@ export default function App() {
         bio: data.bio
       });
       setCurrentUser(updated);
-      toast.success("Profil başarıyla güncellendi!");
+      toast.success("Profile updated successfully!");
     } catch (error: any) {
-      console.error("Profil güncelleme hatası:", error);
-      toast.error("Profil güncellenemedi.");
+      console.error("Profile update error:", error);
+      toast.error("Failed to update profile.");
     } finally {
       setIsLoadingData(false);
     }
@@ -427,10 +428,10 @@ export default function App() {
 
       // Update State
       setBooks(prev => prev.filter(b => b.id !== id));
-      toast.success("Kitap başarıyla silindi.");
+      toast.success("Book deleted successfully.");
     } catch (error) {
-      console.error("Kitap silme hatası:", error);
-      toast.error("Kitap silinemedi.");
+      console.error("Book deletion error:", error);
+      toast.error("Failed to delete book.");
     }
   };
 
@@ -449,13 +450,10 @@ export default function App() {
       // Update State
       setBooks(prev => prev.map(b => b.id === id ? responseBook : b));
 
-      toast.success("Kitap başarıyla güncellendi.");
-
-      // Refresh Stats
-      await fetchLibraryData();
+      toast.success("Book updated successfully.");
     } catch (error) {
-      console.error("Kitap güncelleme hatası:", error);
-      toast.error("Kitap güncellenemedi.");
+      console.error("Book update error:", error);
+      toast.error("Failed to update book.");
     }
   };
 
@@ -463,7 +461,7 @@ export default function App() {
     if (currentUser?.role !== 'user') return;
 
     if (isNaN(amount) || amount <= 0) {
-      toast.error("Lütfen geçerli bir miktar girin.");
+      toast.error("Please enter a valid amount.");
       return;
     }
 
@@ -479,10 +477,10 @@ export default function App() {
       const updatedHistory = await WalletService.getTransactions();
       setTransactions(updatedHistory);
 
-      toast.success(`$${amount} başarıyla yüklendi!`);
+      toast.success(`$${amount} added successfully!`);
     } catch (error: any) {
-      console.error("Para yükleme hatası:", error);
-      toast.error("Yükleme başarısız oldu.");
+      console.error("Add funds error:", error);
+      toast.error("Failed to add funds.");
     } finally {
       setIsLoadingData(false);
     }
@@ -499,7 +497,7 @@ export default function App() {
       const count = await NotificationService.getUnreadCount();
       setNotificationCount(count);
     } catch (e) {
-      console.error("Bildirimler çekilemedi", e);
+      console.error("Failed to fetch notifications", e);
     }
   };
 
@@ -510,7 +508,7 @@ export default function App() {
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
       setNotificationCount(prev => Math.max(0, prev - 1));
     } catch (e) {
-      console.error("Okundu işaretlenemedi", e);
+      console.error("Failed to mark as read", e);
     }
   };
 
@@ -526,10 +524,10 @@ export default function App() {
       }
 
       await NotificationService.deleteNotification(id);
-      toast.success("Bildirim silindi.");
+      toast.success("Notification deleted.");
     } catch (e) {
-      console.error("Bildirim silinemedi", e);
-      toast.error("Bildirim silinirken bir hata oluştu.");
+      console.error("Failed to delete notification", e);
+      toast.error("An error occurred while deleting the notification.");
       // Revert changes if needed, but for now just showing error is enough combined with a refresh could be better but keeping it simple as per plan
       fetchNotificationsRaw(); // Re-fetch to sync state
     }
@@ -545,9 +543,9 @@ export default function App() {
       // Hepsini okundu yap
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setNotificationCount(0);
-      toast.success("Tüm bildirimler okundu olarak işaretlendi.");
+      toast.success("All notifications marked as read.");
     } catch (e) {
-      toast.error("İşlem başarısız.");
+      toast.error("Operation failed.");
     }
   };
 
@@ -573,8 +571,6 @@ export default function App() {
 
           <Sidebar
             userRole={currentUser.role}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
             onLogout={handleLogout}
             notificationCount={notificationCount}
           />
@@ -582,9 +578,16 @@ export default function App() {
           <div className="flex-1 overflow-x-hidden">
             <header className="bg-white dark:bg-gray-800 border-b p-6 flex justify-between items-center shadow-sm">
               <h1 className="text-2xl font-bold capitalize text-gray-800 dark:text-white">
-                {activeTab === 'home' ? 'Kütüphane Paneli' : activeTab}
+                {location.pathname === '/' ? 'Library Dashboard' : location.pathname.substring(1).replace('-', ' ')}
               </h1>
               <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setIsDarkMode(!isDarkMode)}
+                  className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  title="Toggle Theme"
+                >
+                  {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                </button>
                 <span className="text-sm font-semibold px-3 py-1 bg-purple-100 text-purple-700 rounded-full">
                   {currentUser.role === 'user'
                     ? `${currentUser.username} • $${currentUser.walletBalance.toFixed(2)}`
@@ -599,17 +602,17 @@ export default function App() {
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
                 </div>
               ) : (
-                <>
-                  {activeTab === 'home' && (
+                <Routes>
+                  <Route path="/" element={
                     <>
                       {currentUser.role === 'admin' ? (
                         <AdminHomePage
                           {...stats}
                           borrowedBooks={stats.borrowedCount}
                           pendingRequests={stats.systemAlerts || 0}
-                          onNavigateToUserManagement={() => setActiveTab('users')}
-                          onNavigateToBooks={() => setActiveTab('catalog')}
-                          onNavigateToFeedbacks={() => setActiveTab('feedbackManagement')}
+                          onNavigateToUserManagement={() => navigate('/users')}
+                          onNavigateToBooks={() => navigate('/catalog')}
+                          onNavigateToFeedbacks={() => navigate('/feedback-management')}
                         />
                       ) : currentUser.role === 'librarian' ? (
                         <LibrarianHomePage
@@ -622,19 +625,19 @@ export default function App() {
                           booksBorrowedToday={stats.booksBorrowedToday || 0}
                           booksReturnedToday={stats.booksReturnedToday || 0}
                           newDonationsToday={stats.newDonationsToday || 0}
-                          onNavigateToBorrows={() => setActiveTab('requests')}
-                          onNavigateToReturns={() => setActiveTab('requests')}
-                          onNavigateToDonations={() => setActiveTab('requests')}
+                          onNavigateToBorrows={() => navigate('/requests')}
+                          onNavigateToReturns={() => navigate('/requests')}
+                          onNavigateToDonations={() => navigate('/requests')}
                         />
                       ) : (
                         <HomePage
                           books={books}
                           onSelectBook={setSelectedBook}
-                          onNavigateToCatalog={() => setActiveTab('catalog')}
-                          onNavigateToBlindDate={() => setActiveTab('blinddate')}
+                          onNavigateToCatalog={() => navigate('/catalog')}
+                          onNavigateToBlindDate={() => navigate('/blinddate')}
                           onCategorySelect={(category) => {
                             setSelectedCategory(category);
-                            setActiveTab('catalog');
+                            navigate('/catalog');
                           }}
                           totalUsers={stats.totalUsers}
                           booksBorrowedCount={stats.borrowedCount}
@@ -643,16 +646,16 @@ export default function App() {
                         />
                       )}
                     </>
-                  )}
+                  } />
 
-                  {activeTab === 'blinddate' && (
+                  <Route path="/blinddate" element={
                     <BlindDate
                       onPurchase={() => toast.info("Purchase feature coming soon via Blind Date!")}
                       onBorrow={handleBorrow}
                     />
-                  )}
+                  } />
 
-                  {activeTab === 'catalog' && (
+                  <Route path="/catalog" element={
                     <BookCatalog
                       books={books}
                       categories={categories}
@@ -667,26 +670,27 @@ export default function App() {
                       totalPages={totalPages}
                       onPageChange={handlePageChange}
                     />
-                  )}
+                  } />
 
-                  {activeTab === 'wallet' && (
+                  <Route path="/wallet" element={
                     <Wallet
                       balance={currentUser.walletBalance}
                       currentUsername={currentUser.username}
                       transactions={transactions}
                       onAddFunds={handleAddFunds}
                     />
-                  )}
+                  } />
 
-                  {activeTab === 'bookManagement' && (
+                  <Route path="/book-management" element={
                     <BookManagement
                       books={books || []}
                       onAddBook={handleAddBook}
                       onRemoveBook={handleRemoveBook}
                       onEditBook={handleEditBook}
                     />
-                  )}
-                  {activeTab === 'account' && (
+                  } />
+                  
+                  <Route path="/profile" element={
                     <AccountManagement
                       username={currentUser.username}
                       email={currentUser.email}
@@ -701,47 +705,32 @@ export default function App() {
                       activeLoanCount={currentUser.activeLoanCount || 0}
                       onUpdateProfile={handleUpdateProfile}
                     />
-                  )}
+                  } />
 
-                  {activeTab === 'users' && (
-                    <UserManagement />
-                  )}
+                  <Route path="/users" element={<UserManagement />} />
+                  <Route path="/comments" element={<AdminPanel />} />
+                  <Route path="/feedback-management" element={<FeedbackManagement />} />
+                  <Route path="/history" element={<BookHistory />} />
 
-                  {/* Comments Management Panel */}
-                  {activeTab === 'admin' && (
-                    <AdminPanel />
-                  )}
-
-                  {activeTab === 'feedbackManagement' && (
-                    <FeedbackManagement />
-                  )}
-
-                  {activeTab === 'history' && (
-                    <BookHistory />
-                  )}
-
-                  {activeTab === 'donation' && (
+                  <Route path="/donation" element={
                     <DonationForm
                       currentUsername={currentUser?.username}
                       onAddDonation={(donation) => {
                         console.log("Donation added:", donation);
-                        // Optional: Add to a local list or trigger a refetch if needed, 
-                        // but DonationForm now handles its own history fetching.
                       }}
                     />
-                  )}
+                  } />
 
-                  {activeTab === 'feedback' && (
+                  <Route path="/feedback" element={
                     <FeedbackForm
                       currentUsername={currentUser?.username}
                       userRole={currentUser?.role}
                       onAddFeedback={(fb) => console.log(fb)}
                     />
-                  )}
+                  } />
 
-                  {activeTab === 'requests' && (
-                    currentUser?.role === 'librarian' || currentUser?.role === 'admin')
-                    && (
+                  <Route path="/requests" element={
+                    (currentUser?.role === 'librarian' || currentUser?.role === 'admin') ? (
                       <LibrarianPanel
                         borrowRequests={rentalRequests.map((req: any) => ({
                           id: String(req.id),
@@ -754,9 +743,10 @@ export default function App() {
                         onApproveBorrow={(id) => handleApprove(Number(id))}
                         onRejectBorrow={(id) => handleReject(Number(id))}
                       />
-                    )}
+                    ) : <Navigate to="/" />
+                  } />
 
-                  {activeTab === 'notifications' && (
+                  <Route path="/notifications" element={
                     <Notifications
                       notifications={notifications}
                       onMarkAsRead={handleMarkAsRead}
@@ -765,8 +755,10 @@ export default function App() {
                       currentUserRole={currentUser?.role}
                       currentUsername={currentUser?.username}
                     />
-                  )}
-                </>
+                  } />
+                  
+                  <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
               )}
             </main>
           </div>
@@ -797,5 +789,13 @@ export default function App() {
         </div>
       )}
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
   );
 }
