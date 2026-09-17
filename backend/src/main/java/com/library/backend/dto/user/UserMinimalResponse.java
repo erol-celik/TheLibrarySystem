@@ -7,6 +7,6 @@ import lombok.Data;
 public class UserMinimalResponse {
     private Long id;
     private String name;
-    private String profipePicture;
+    private String profilePicture;
 
 }
